@@ -260,11 +260,19 @@ void BigInt_test_construct(int value) {
     BigInt_free(big_int);
 }
 
-// 
 void BigInt_test_compare(int a, int b) {
+    // Test ALL the permutations! 
+    BigInt_test_compare_helper(a, b);
+    BigInt_test_compare_helper(-a, b);
+    BigInt_test_compare_helper(a, -b);
+    BigInt_test_compare_helper(-a, -b);
+    BigInt_test_compare_helper(b, a);
+    BigInt_test_compare_helper(-b, a);
+    BigInt_test_compare_helper(b, -a);
+    BigInt_test_compare_helper(-b, -a);
+}
 
-    // TODO: test harness should automatically swap,
-    // test both directions 
+void BigInt_test_compare_helper(int a, int b) {
     BigInt* big_int_a = BigInt_construct(a);
     BigInt* big_int_b = BigInt_construct(b);
    

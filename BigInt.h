@@ -33,6 +33,7 @@ void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed);
 
 
 // Internal helpers
+int BigInt_compare_digits(const BigInt* a, const BigInt* b);
 void BigInt_add_digits(BigInt* big_int, const BigInt* to_add);
 void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 

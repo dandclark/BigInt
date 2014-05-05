@@ -64,11 +64,17 @@ int BigInt_compare(const BigInt* a, const BigInt* b) {
         }
     }
 
-    // Another quick return if one number has more digits than the other
+    return a->is_negative ? BigInt_compare_digits(b, a) : BigInt_compare_digits(a, b);
+}
+
+int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
+    // Not looking at the sign here, comparing the digits only.
+
+    // Quick return if one number has more digits than the other
     if(a->num_digits > b->num_digits) {
-       return a->is_negative ? -1 : 1; 
+       return 1; 
     } else if(a->num_digits < b->num_digits) {
-       return a->is_negative ? 1 : -1; 
+       return -1; 
     }
 
     // Both have the same number of digits, so we actually have to loop through until we
@@ -76,16 +82,15 @@ int BigInt_compare(const BigInt* a, const BigInt* b) {
     int i;
     for(i = a->num_digits - 1; i >= 0; --i) {
         if(a->digits[i] > b->digits[i]) {
-            return a->is_negative ? -1 : 1;
+            return 1;
         } else if(a->digits[i] < b->digits[i]) {
-            return a->is_negative ? 1 : -1;
+            return -1;
         }
     }
 
     // All digits match; numbers are equal
     return 0;
 }
-
 
 void BigInt_add(BigInt* big_int, const BigInt* addend) {
     // TODO: Handle negative numbers?
@@ -113,15 +118,20 @@ void BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
 }
 
 void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
+    // Figure out the sign.  Need to do this before calculating the digits of
+    // the result because changing those in big_int will affect the result
+    // of the compare.
+    unsigned int result_is_negative = BigInt_compare(big_int, to_subtract) > 0 ? 0 : 1;
+    
     // Calculate the digits
     if(big_int->is_negative == to_subtract->is_negative) {
         BigInt_subtract_digits(big_int, to_subtract);
     } else {
         BigInt_add_digits(big_int, to_subtract);
     }
-
+    
     // Figure out the sign
-    big_int->is_negative = BigInt_compare(big_int, to_subtract) > 0 ? 0 : 1;
+    big_int->is_negative = result_is_negative;
 }
 
 
@@ -130,36 +140,42 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     unsigned int digits_needed = MAX(big_int->num_digits, to_subtract->num_digits) + 1;
     BigInt_ensure_digits(big_int, digits_needed);
     
-    // Determine the number with more digits.  This will go on "top"
+    // Determine the larger int.  This will go on "top"
     // of the subtraction.  Sign doesn't matter here since we've already
     // determined the sign of the final result above.
-    unsigned char* longer_int_digits;
-    unsigned char* shorter_int_digits;
-    unsigned int shorter_int_num_digits;
+    unsigned char* greater_int_digits;
+    unsigned char* smaller_int_digits;
+    unsigned int smaller_int_num_digits;
 
-    if(big_int->num_digits > to_subtract->num_digits) {
-        longer_int_digits = big_int->digits;
-        shorter_int_digits = to_subtract->digits;
-        shorter_int_num_digits = to_subtract->num_digits;
+    if(BigInt_compare_digits(big_int, to_subtract) > 0) {
+        greater_int_digits = big_int->digits;
+        smaller_int_digits = to_subtract->digits;
+        smaller_int_num_digits = to_subtract->num_digits;
     } else {
-        longer_int_digits = to_subtract->digits;
-        shorter_int_digits = big_int->digits;
-        shorter_int_num_digits = big_int->num_digits;
+        greater_int_digits = to_subtract->digits;
+        smaller_int_digits = big_int->digits;
+        smaller_int_num_digits = big_int->num_digits;
     }
 
     // Actually carry out the subtraction. 
     int i;
     int carry = 0;
-    for(i = 0; i < shorter_int_num_digits || carry != 0; ++i) {
-        big_int->digits[i] = longer_int_digits[i] - shorter_int_digits[i] + carry;
+    for(i = 0; i < smaller_int_num_digits || carry != 0; ++i) {
+        // TODO: Bug!! Need to initialize digits if we're doing a carry.
+        int new_digit = (int)greater_int_digits[i] - (int)smaller_int_digits[i] + carry;
         
         // Carry 10 from the next digit if necessary
-        if(big_int->digits[i] < 0) {
+        if(new_digit < 0) {
             carry = -1;
-            big_int->digits[i] += 10;
+            new_digit += 10;
         } else {
             carry = 0;
         }
+
+        printf("greater_int_digits[i]: %i smaller_int_digits[i]: %i\n", greater_int_digits[i], smaller_int_digits[i]);
+        printf("new_digit: %i\n", new_digit);
+        assert(new_digit >= 0);
+        big_int->digits[i] = new_digit;
     }
 
 }
@@ -322,7 +338,9 @@ void BigInt_test_add(int a, int b) {
     BigInt* big_int_b = BigInt_construct(b);
     
     BigInt_add(big_int_a, big_int_b);
-    assert(BigInt_to_int(big_int_a) == a + b);
+    int result = BigInt_to_int(big_int_a);
+    printf("Addition result is %i\n", result);
+    assert(result == a + b);
 
     BigInt_free(big_int_a);
     BigInt_free(big_int_b);

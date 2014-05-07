@@ -6,6 +6,7 @@
 #endif
 
 #define BUILD_BIGINT_TESTS
+#define BIGINT_TEST_LOGGING 1
 
 typedef struct BigInt {
 
@@ -44,6 +45,7 @@ void BigInt_test_construct(int value);
 void BigInt_test_compare(int a, int b);
 void BigInt_test_compare_helper(int a, int b);
 void BigInt_test_add(int a, int b);
+void BigInt_test_add_helper(int a, int b);
 void BigInt_test_subtract(int a, int b);
 void BigInt_test_subtract_helper(int a, int b);
 

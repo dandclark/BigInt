@@ -93,8 +93,20 @@ int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
 }
 
 void BigInt_add(BigInt* big_int, const BigInt* addend) {
-    // TODO: Handle negative numbers?
-    BigInt_add_digits(big_int, addend);
+    if(big_int->is_negative == addend->is_negative) {
+        // Sign will never change in this case so just leave
+        // it as-is.
+        BigInt_add_digits(big_int, addend);
+    } else {
+        // Figure out the sign.  Need to do this before calculating the digits of
+        // the digits result because changing those in big_int will affect the result
+        // of the compare.
+        unsigned int result_is_negative = BigInt_compare_digits(big_int, addend) > 0 ?
+                big_int->is_negative : addend->is_negative;
+    
+        BigInt_subtract_digits(big_int, addend);
+        big_int->is_negative = result_is_negative;
+    }
 }
 
 void BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
@@ -119,7 +131,7 @@ void BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
 
 void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     // Figure out the sign.  Need to do this before calculating the digits of
-    // the result because changing those in big_int will affect the result
+    // the digits result because changing those in big_int will affect the result
     // of the compare.
     unsigned int result_is_negative = BigInt_compare(big_int, to_subtract) > 0 ? 0 : 1;
     
@@ -231,8 +243,6 @@ void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
 #ifdef BUILD_BIGINT_TESTS
 
 void BigInt_test_basic() {
-    // TODO: Add tests for negative numbers
-
 
     printf("Testing construction\n");
     BigInt_test_construct(0);
@@ -256,20 +266,6 @@ void BigInt_test_basic() {
     assert(BigInt_to_int(big_int) == 42);
     BigInt_free(big_int);
 
-    printf("Testing addition\n");
-    BigInt_test_add(0, 0);
-    BigInt_test_add(1, 1);
-    BigInt_test_add(5, 5);
-    BigInt_test_add(5, 6);
-    BigInt_test_add(10, 2);
-    BigInt_test_add(14, 16);
-    BigInt_test_add(16, 18);
-    BigInt_test_add(11, 111);
-    BigInt_test_add(123456, 1234);
-    BigInt_test_add(999999999, 1);
-    BigInt_test_add(0, 12345678);
-    BigInt_test_add(12345678, 0);
-   
     // TODO: test harness should automatically swap,
     // test both directions 
     printf("Testing comparison\n");
@@ -293,6 +289,23 @@ void BigInt_test_basic() {
     BigInt_test_compare(-999, -1000);
     BigInt_test_compare(-5555, -5556);
 
+    printf("Testing addition\n");
+    BigInt_test_add(0, 0);
+    BigInt_test_add(1, 1);
+    BigInt_test_add(5, 5);
+    BigInt_test_add(5, 6);
+    BigInt_test_add(10, 2);
+    BigInt_test_add(14, 16);
+    BigInt_test_add(16, 18);
+    BigInt_test_add(11, 111);
+    BigInt_test_add(123456, 1234);
+    BigInt_test_add(999999999, 1);
+    BigInt_test_add(0, 12345678);
+    BigInt_test_add(12345678, 0);
+    BigInt_test_add(1000, 1);
+    BigInt_test_add(2546, 2546);
+    BigInt_test_add(1234, 4321);
+   
     printf("Testing subtraction\n");
     BigInt_test_subtract(0, 0);
     BigInt_test_subtract(5, 5);
@@ -328,10 +341,20 @@ void BigInt_test_compare(int a, int b) {
 }
 
 void BigInt_test_compare_helper(int a, int b) {
+    
+    if(BIGINT_TEST_LOGGING) {
+        printf("test_compare_helper testing %i , %i\n", a, b);
+    }
+
     BigInt* big_int_a = BigInt_construct(a);
     BigInt* big_int_b = BigInt_construct(b);
    
     int compare_result = BigInt_compare(big_int_a, big_int_b);
+    
+    if(BIGINT_TEST_LOGGING) {
+        printf("Comparison result: %i\n", compare_result);
+    }
+
     if(a > b) {
         assert(compare_result == 1);
     } else if(a < b) {
@@ -345,13 +368,33 @@ void BigInt_test_compare_helper(int a, int b) {
 }
 
 void BigInt_test_add(int a, int b) {
+    // Test ALL the permutations! 
+    BigInt_test_add_helper(a, b);
+    BigInt_test_add_helper(-a, b);
+    BigInt_test_add_helper(a, -b);
+    BigInt_test_add_helper(-a, -b);
+    BigInt_test_add_helper(b, a);
+    BigInt_test_add_helper(-b, a);
+    BigInt_test_add_helper(b, -a);
+    BigInt_test_add_helper(-b, -a);
+}
+
+void BigInt_test_add_helper(int a, int b) {
+
+    if(BIGINT_TEST_LOGGING) {
+        printf("test_add_helper testing %i - %i\n", a, b);
+    }
 
     BigInt* big_int_a = BigInt_construct(a);
     BigInt* big_int_b = BigInt_construct(b);
     
     BigInt_add(big_int_a, big_int_b);
     int result = BigInt_to_int(big_int_a);
-    // printf("Addition result is %i\n", result);
+
+    if(BIGINT_TEST_LOGGING) {
+        printf("Addition result: %i\n", result);
+    }
+
     assert(result == a + b);
 
     BigInt_free(big_int_a);
@@ -371,15 +414,21 @@ void BigInt_test_subtract(int a, int b) {
 }
 
 void BigInt_test_subtract_helper(int a, int b) {
-
-    // printf("test_subtract_helper testing %i - %i\n", a, b);
+    
+    if(BIGINT_TEST_LOGGING) {
+        printf("test_subtract_helper testing %i - %i\n", a, b);
+    }
 
     BigInt* big_int_a = BigInt_construct(a);
     BigInt* big_int_b = BigInt_construct(b);
     
     BigInt_subtract(big_int_a, big_int_b);
     int result = BigInt_to_int(big_int_a);
-    // printf("Subtraction result: %i\n", result);
+    
+    if(BIGINT_TEST_LOGGING) {
+        printf("Subtraction result: %i\n", result);
+    }
+    
     assert(result == a - b);
 
     BigInt_free(big_int_a);

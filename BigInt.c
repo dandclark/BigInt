@@ -146,13 +146,16 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     unsigned char* greater_int_digits;
     unsigned char* smaller_int_digits;
     unsigned int smaller_int_num_digits;
+    unsigned int greater_int_num_digits;
 
     if(BigInt_compare_digits(big_int, to_subtract) > 0) {
         greater_int_digits = big_int->digits;
+        greater_int_num_digits = big_int->num_digits;
         smaller_int_digits = to_subtract->digits;
         smaller_int_num_digits = to_subtract->num_digits;
     } else {
         greater_int_digits = to_subtract->digits;
+        greater_int_num_digits = to_subtract->num_digits;
         smaller_int_digits = big_int->digits;
         smaller_int_num_digits = big_int->num_digits;
     }
@@ -160,10 +163,16 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     // Actually carry out the subtraction. 
     int i;
     int carry = 0;
-    for(i = 0; i < smaller_int_num_digits || carry != 0; ++i) {
-        // TODO: Bug!! Need to initialize digits if we're doing a carry.
-        int new_digit = (int)greater_int_digits[i] - (int)smaller_int_digits[i] + carry;
-        
+    big_int->num_digits = 1;
+
+    for(i = 0; i < greater_int_num_digits; ++i) {
+        int new_digit;
+        if(i < smaller_int_num_digits) {
+            new_digit = (int)greater_int_digits[i] - (int)smaller_int_digits[i] + carry;
+        } else {
+            new_digit = (int)greater_int_digits[i] + carry;
+        } 
+
         // Carry 10 from the next digit if necessary
         if(new_digit < 0) {
             carry = -1;
@@ -172,12 +181,14 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
             carry = 0;
         }
 
-        printf("greater_int_digits[i]: %i smaller_int_digits[i]: %i\n", greater_int_digits[i], smaller_int_digits[i]);
-        printf("new_digit: %i\n", new_digit);
         assert(new_digit >= 0);
         big_int->digits[i] = new_digit;
+        if(new_digit != 0) {
+            big_int->num_digits = i + 1;
+        }
     }
 
+    assert(carry == 0);
 }
 
 int BigInt_to_int(const BigInt* big_int) {
@@ -233,7 +244,6 @@ void BigInt_test_basic() {
     BigInt_test_construct(1000000000);
     BigInt_test_construct(1000000001);
     BigInt_test_construct(990000000);
-
 
     // Ensure that reallocating digits doesn't make us
     // lose data.
@@ -295,6 +305,8 @@ void BigInt_test_basic() {
     BigInt_test_subtract(999999999, 1);
     BigInt_test_subtract(0, 12345678);
     BigInt_test_subtract(1000, 1);
+    BigInt_test_subtract(2546, 2546);
+    BigInt_test_subtract(1234, 4321);
 }
 
 void BigInt_test_construct(int value) {
@@ -339,7 +351,7 @@ void BigInt_test_add(int a, int b) {
     
     BigInt_add(big_int_a, big_int_b);
     int result = BigInt_to_int(big_int_a);
-    printf("Addition result is %i\n", result);
+    // printf("Addition result is %i\n", result);
     assert(result == a + b);
 
     BigInt_free(big_int_a);
@@ -360,14 +372,14 @@ void BigInt_test_subtract(int a, int b) {
 
 void BigInt_test_subtract_helper(int a, int b) {
 
-    printf("test_subtract_helper testing %i - %i\n", a, b);
+    // printf("test_subtract_helper testing %i - %i\n", a, b);
 
     BigInt* big_int_a = BigInt_construct(a);
     BigInt* big_int_b = BigInt_construct(b);
     
     BigInt_subtract(big_int_a, big_int_b);
     int result = BigInt_to_int(big_int_a);
-    printf("Subtraction result: %i\n", result);
+    // printf("Subtraction result: %i\n", result);
     assert(result == a - b);
 
     BigInt_free(big_int_a);

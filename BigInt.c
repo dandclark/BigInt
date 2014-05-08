@@ -266,60 +266,49 @@ void BigInt_test_basic() {
     assert(BigInt_to_int(big_int) == 42);
     BigInt_free(big_int);
 
-    // TODO: test harness should automatically swap,
-    // test both directions 
     printf("Testing comparison\n");
-    BigInt_test_compare(0, 0);
-    BigInt_test_compare(1, 1);
-    BigInt_test_compare(50, 50);
-    BigInt_test_compare(51, 50);
-    BigInt_test_compare(64, 46);
-    BigInt_test_compare(46, 64);
-    BigInt_test_compare(1000, 999);
-    BigInt_test_compare(999, 1000);
-    BigInt_test_compare(5555, 5556);
-    BigInt_test_compare(-1, 1);
-    BigInt_test_compare(-1, -1);
-    BigInt_test_compare(-30, -28);
-    BigInt_test_compare(1, -50);
-    BigInt_test_compare(-1, 50);
-    BigInt_test_compare(-46, 64);
-    BigInt_test_compare(-100, -101);
-    BigInt_test_compare(-1000, -999);
-    BigInt_test_compare(-999, -1000);
-    BigInt_test_compare(-5555, -5556);
+    test_permutations(BigInt_test_compare, 0, 0);
+    test_permutations(BigInt_test_compare, 1, 1);
+    test_permutations(BigInt_test_compare, 50, 50);
+    test_permutations(BigInt_test_compare, 51, 50);
+    test_permutations(BigInt_test_compare, 64, 46);
+    test_permutations(BigInt_test_compare, 1000, 999);
+    test_permutations(BigInt_test_compare, 30, 28);
+    test_permutations(BigInt_test_compare, 1, 50);
+    test_permutations(BigInt_test_compare, 100, 101);
+    test_permutations(BigInt_test_compare, 1000, 999);
+    test_permutations(BigInt_test_compare, 5555, 5556);
 
     printf("Testing addition\n");
-    BigInt_test_add(0, 0);
-    BigInt_test_add(1, 1);
-    BigInt_test_add(5, 5);
-    BigInt_test_add(5, 6);
-    BigInt_test_add(10, 2);
-    BigInt_test_add(14, 16);
-    BigInt_test_add(16, 18);
-    BigInt_test_add(11, 111);
-    BigInt_test_add(123456, 1234);
-    BigInt_test_add(999999999, 1);
-    BigInt_test_add(0, 12345678);
-    BigInt_test_add(12345678, 0);
-    BigInt_test_add(1000, 1);
-    BigInt_test_add(2546, 2546);
-    BigInt_test_add(1234, 4321);
+    test_permutations(BigInt_test_add, 0, 0);
+    test_permutations(BigInt_test_add, 1, 1);
+    test_permutations(BigInt_test_add, 5, 5);
+    test_permutations(BigInt_test_add, 5, 6);
+    test_permutations(BigInt_test_add, 10, 2);
+    test_permutations(BigInt_test_add, 14, 16);
+    test_permutations(BigInt_test_add, 16, 18);
+    test_permutations(BigInt_test_add, 11, 111);
+    test_permutations(BigInt_test_add, 123456, 1234);
+    test_permutations(BigInt_test_add, 999999999, 1);
+    test_permutations(BigInt_test_add, 0, 12345678);
+    test_permutations(BigInt_test_add, 1000, 1);
+    test_permutations(BigInt_test_add, 2546, 2546);
+    test_permutations(BigInt_test_add, 1234, 4321);
    
     printf("Testing subtraction\n");
-    BigInt_test_subtract(0, 0);
-    BigInt_test_subtract(5, 5);
-    BigInt_test_subtract(5, 6);
-    BigInt_test_subtract(10, 2);
-    BigInt_test_subtract(14, 16);
-    BigInt_test_subtract(16, 18);
-    BigInt_test_subtract(11, 111);
-    BigInt_test_subtract(123456, 1234);
-    BigInt_test_subtract(999999999, 1);
-    BigInt_test_subtract(0, 12345678);
-    BigInt_test_subtract(1000, 1);
-    BigInt_test_subtract(2546, 2546);
-    BigInt_test_subtract(1234, 4321);
+    test_permutations(BigInt_test_subtract, 0, 0);
+    test_permutations(BigInt_test_subtract, 5, 5);
+    test_permutations(BigInt_test_subtract, 5, 6);
+    test_permutations(BigInt_test_subtract, 10, 2);
+    test_permutations(BigInt_test_subtract, 14, 16);
+    test_permutations(BigInt_test_subtract, 16, 18);
+    test_permutations(BigInt_test_subtract, 11, 111);
+    test_permutations(BigInt_test_subtract, 123456, 1234);
+    test_permutations(BigInt_test_subtract, 999999999, 1);
+    test_permutations(BigInt_test_subtract, 0, 12345678);
+    test_permutations(BigInt_test_subtract, 1000, 1);
+    test_permutations(BigInt_test_subtract, 2546, 2546);
+    test_permutations(BigInt_test_subtract, 1234, 4321);
 }
 
 void BigInt_test_construct(int value) {
@@ -328,19 +317,21 @@ void BigInt_test_construct(int value) {
     BigInt_free(big_int);
 }
 
-void BigInt_test_compare(int a, int b) {
-    // Test ALL the permutations! 
-    BigInt_test_compare_helper(a, b);
-    BigInt_test_compare_helper(-a, b);
-    BigInt_test_compare_helper(a, -b);
-    BigInt_test_compare_helper(-a, -b);
-    BigInt_test_compare_helper(b, a);
-    BigInt_test_compare_helper(-b, a);
-    BigInt_test_compare_helper(b, -a);
-    BigInt_test_compare_helper(-b, -a);
+// Calls the specified BigInt 2-operand function, for all 
+// permutations of positive, negative, and order-reversals
+// of the values a and b.
+void test_permutations(void (*function_to_test)(int a, int b), int a, int b) {
+    (*function_to_test)(a, b);
+    (*function_to_test)(-a, b);
+    (*function_to_test)(a, -b);
+    (*function_to_test)(-a, -b);
+    (*function_to_test)(b, a);
+    (*function_to_test)(-b, a);
+    (*function_to_test)(b, -a);
+    (*function_to_test)(-b, -a);
 }
 
-void BigInt_test_compare_helper(int a, int b) {
+void BigInt_test_compare(int a, int b) {
     
     if(BIGINT_TEST_LOGGING) {
         printf("test_compare_helper testing %i , %i\n", a, b);
@@ -368,18 +359,6 @@ void BigInt_test_compare_helper(int a, int b) {
 }
 
 void BigInt_test_add(int a, int b) {
-    // Test ALL the permutations! 
-    BigInt_test_add_helper(a, b);
-    BigInt_test_add_helper(-a, b);
-    BigInt_test_add_helper(a, -b);
-    BigInt_test_add_helper(-a, -b);
-    BigInt_test_add_helper(b, a);
-    BigInt_test_add_helper(-b, a);
-    BigInt_test_add_helper(b, -a);
-    BigInt_test_add_helper(-b, -a);
-}
-
-void BigInt_test_add_helper(int a, int b) {
 
     if(BIGINT_TEST_LOGGING) {
         printf("test_add_helper testing %i - %i\n", a, b);
@@ -402,18 +381,6 @@ void BigInt_test_add_helper(int a, int b) {
 }
 
 void BigInt_test_subtract(int a, int b) {
-    // Test ALL the permutations! 
-    BigInt_test_subtract_helper(a, b);
-    BigInt_test_subtract_helper(-a, b);
-    BigInt_test_subtract_helper(a, -b);
-    BigInt_test_subtract_helper(-a, -b);
-    BigInt_test_subtract_helper(b, a);
-    BigInt_test_subtract_helper(-b, a);
-    BigInt_test_subtract_helper(b, -a);
-    BigInt_test_subtract_helper(-b, -a);
-}
-
-void BigInt_test_subtract_helper(int a, int b) {
     
     if(BIGINT_TEST_LOGGING) {
         printf("test_subtract_helper testing %i - %i\n", a, b);

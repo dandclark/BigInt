@@ -43,12 +43,9 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 void BigInt_test_basic();
 void BigInt_test_construct(int value);
 void BigInt_test_compare(int a, int b);
-void BigInt_test_compare_helper(int a, int b);
 void BigInt_test_add(int a, int b);
-void BigInt_test_add_helper(int a, int b);
 void BigInt_test_subtract(int a, int b);
-void BigInt_test_subtract_helper(int a, int b);
-
+void test_permutations(void (*function_to_test)(int a, int b), int a, int b); 
 
 #endif // BUILD_BIGINT_TESTS
 

@@ -40,12 +40,24 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 
 #ifdef BUILD_BIGINT_TESTS
 
+//enum OPERATION_TYPE { ADD, SUBTRACT, COMPARE };
+typedef enum { ADD, SUBTRACT, COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
+extern const char* OPERATION_NAMES[];
+
+// Used to cast various BigInt functions to a generic type that can
+// be passed through the test helpers BigInt_test_permutations and
+// BigInt_test_single_operation.  The function pointers are cast
+// back to the correct type in BigInt_test_single_operation using
+// the specified OPERATION_TYPE.
+typedef void*(*Generic_function)(void*);
+
 void BigInt_test_basic();
 void BigInt_test_construct(int value);
-void BigInt_test_compare(int a, int b);
-void BigInt_test_add(int a, int b);
-void BigInt_test_subtract(int a, int b);
-void test_permutations(void (*function_to_test)(int a, int b), int a, int b); 
+void BigInt_test_operations(int a, int b);
+void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
+        OPERATION_TYPE operation_type, int a, int b); 
+void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
+        OPERATION_TYPE operation_type, int a, int b);
 
 #endif // BUILD_BIGINT_TESTS
 

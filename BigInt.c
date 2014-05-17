@@ -48,11 +48,25 @@ BigInt* BigInt_construct(int value) {
     return new_big_int;
 }
 
+
 void BigInt_free(BigInt* big_int) {
     free(big_int->digits);
     free(big_int);
 }
 
+void BigInt_assign(BigInt* target, const BigInt* source)
+{
+    // Make sure there's enouch space allocated at target
+    BigInt_ensure_digits(target, source->num_digits);
+
+    int i;
+    for(i = 0; i < source->num_digits; ++i) {
+        target->digits[i] = source->digits[i];
+    }
+
+    target->is_negative = source->is_negative;
+    target->num_digits = source->num_digits;
+}
 
 int BigInt_compare(const BigInt* a, const BigInt* b) {
     // Quick return if one is negative and the other isn't
@@ -203,6 +217,61 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     assert(carry == 0);
 }
 
+// Multiply using the pencil and paper method.  O(n*m) where n, m are the number
+// of digits in big_int and multiplier.
+void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
+
+    // Need to keep track of the result in a separate variable because we need
+    // big_int to retain its original value throughout the course of the calculation.
+    BigInt* result = BigInt_construct(0);
+
+    // addend will hold the amount to be added to the result for each step of
+    // the multiplication.
+    BigInt* addend = BigInt_construct(0);    
+
+    unsigned int digits_needed = big_int->num_digits + addend->num_digits + 1;
+    BigInt_ensure_digits(addend, digits_needed);
+
+    int i, j;
+    int carry = 0;
+    for(i = 0; i < multiplier->num_digits; ++i) {
+
+        if(i > 0) {
+            addend->num_digits = i;
+            addend->digits[i - 1] = 0;
+        }
+
+        for(j = 0; j < big_int->num_digits || carry > 0; ++j) {
+            if(j + i == addend->num_digits) {
+                ++addend->num_digits;
+            }
+
+            assert(digits_needed >= j + 1);
+           
+            int total; 
+            if(j < big_int->num_digits) {
+                total = (big_int->digits[j] * multiplier->digits[i]) + carry;
+            } else {
+                total = carry;
+            }
+
+            addend->digits[i + j] = total % 10;
+            carry = total / 10;
+        }
+
+        BigInt_add(result, addend);
+    }
+
+    result->is_negative = big_int->is_negative != multiplier->is_negative;    
+
+    // Place the result in big_int and clean things up
+    BigInt_assign(big_int, result);
+    BigInt_free(result);
+    BigInt_free(addend);
+}
+
+
+
 int BigInt_to_int(const BigInt* big_int) {
     int value = 0;
     int tens_multiplier = 1;
@@ -242,7 +311,7 @@ void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
 
 #ifdef BUILD_BIGINT_TESTS
 
-const char* OPERATION_NAMES[] = {"Addition", "Subtraction", "Comparison"};
+const char* OPERATION_NAMES[] = {"Addition", "Subtraction", "Multiplication", "Comparison"};
 
 void BigInt_test_basic() {
 
@@ -312,6 +381,9 @@ void BigInt_test_operations(int a, int b) {
             case SUBTRACT:
                 BigInt_test_permutations((Generic_function)BigInt_subtract, operation_type, a, b); 
                 break;
+            case MULTIPLY:
+                BigInt_test_permutations((Generic_function)BigInt_multiply, operation_type, a, b); 
+                break;
             case COMPARE:
                 BigInt_test_permutations((Generic_function)BigInt_compare, operation_type, a, b); 
                 break;
@@ -353,6 +425,7 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
     switch(operation_type) {
         case ADD:
         case SUBTRACT:
+        case MULTIPLY:
             ((void(*)(BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b);
             result = BigInt_to_int(big_int_a);
             break;
@@ -374,6 +447,9 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
             break;
         case SUBTRACT:
             assert(result == a - b);
+            break;
+        case MULTIPLY:
+            assert(result == a * b);
             break;
         case COMPARE:
             assert((a > b) ? (result == 1) : (a < b) ? (result == -1) : (result == 0));

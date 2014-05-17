@@ -20,20 +20,24 @@ typedef struct BigInt {
 BigInt* BigInt_construct(int value);
 void BigInt_free(BigInt* big_int);
 
-/* Returns -1 if a < b, 0 if a == b, 1 if a > b */
+///Sets the value of the target BigInt to the value of the source BigInt.
+// Assumes that target (and source) already points to a valid BigInt. 
+void BigInt_assign(BigInt* target, const BigInt* source);
+
+// Returns -1 if a < b, 0 if a == b, 1 if a > b 
 int BigInt_compare(const BigInt* a, const BigInt* b);
 
 void BigInt_add(BigInt* big_int, const BigInt* addend);
 void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract);
+void BigInt_multiply(BigInt* big_int, const BigInt* multiplier);
 
 int BigInt_to_int(const BigInt* big_int);
 
 void BigInt_print(const BigInt* big_int);
 
-void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed);
-
 
 // Internal helpers
+void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed);
 int BigInt_compare_digits(const BigInt* a, const BigInt* b);
 void BigInt_add_digits(BigInt* big_int, const BigInt* to_add);
 void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
@@ -41,7 +45,7 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 #ifdef BUILD_BIGINT_TESTS
 
 //enum OPERATION_TYPE { ADD, SUBTRACT, COMPARE };
-typedef enum { ADD, SUBTRACT, COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
+typedef enum { ADD, SUBTRACT, MULTIPLY, COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
 
 // Used to cast various BigInt functions to a generic type that can

@@ -10,11 +10,6 @@
 #include "BigInt.h"
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-
-void BigInt_realloc_digits(BigInt* big_int, unsigned int num_digits) {
-    assert(num_digits > big_int->num_digits);
-}
 
 BigInt* BigInt_construct(int value) {
 
@@ -34,10 +29,8 @@ BigInt* BigInt_construct(int value) {
         new_big_int->num_digits = 1;
     }
 
-    // printf("Constructing BigInt with %i digits\n", new_big_int->num_digits);
-
     new_big_int->num_allocated_digits = new_big_int->num_digits;
-    new_big_int->digits = (unsigned char*)malloc(new_big_int->num_allocated_digits * sizeof(unsigned char));
+    new_big_int->digits = malloc(new_big_int->num_allocated_digits * sizeof(unsigned char));
 
     int i;
     for(i = 0; i < new_big_int->num_digits; i++) {
@@ -48,7 +41,6 @@ BigInt* BigInt_construct(int value) {
     return new_big_int;
 }
 
-
 void BigInt_free(BigInt* big_int) {
     free(big_int->digits);
     free(big_int);
@@ -56,7 +48,6 @@ void BigInt_free(BigInt* big_int) {
 
 void BigInt_assign(BigInt* target, const BigInt* source)
 {
-    // Make sure there's enouch space allocated at target
     BigInt_ensure_digits(target, source->num_digits);
 
     int i;
@@ -217,8 +208,8 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     assert(carry == 0);
 }
 
-// Multiply using the pencil and paper method.  O(n*m) where n, m are the number
-// of digits in big_int and multiplier.
+// Multiply using the pencil and paper method.  Complexity is O(n*m) where n, m are
+// the number of digits in big_int and multiplier, respectively.
 void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
 
     // Need to keep track of the result in a separate variable because we need
@@ -271,7 +262,6 @@ void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
 }
 
 
-
 int BigInt_to_int(const BigInt* big_int) {
     int value = 0;
     int tens_multiplier = 1;
@@ -315,7 +305,9 @@ const char* OPERATION_NAMES[] = {"Addition", "Subtraction", "Multiplication", "C
 
 void BigInt_test_basic() {
 
-    printf("Testing construction\n");
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing construction\n");
+    }
     BigInt_test_construct(0);
     BigInt_test_construct(1);
     BigInt_test_construct(-1);
@@ -328,7 +320,9 @@ void BigInt_test_basic() {
 
     // Ensure that reallocating digits doesn't make us
     // lose data.
-    printf("Testing digit reallocation\n");
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing digit reallocation\n");
+    }
     BigInt* big_int = BigInt_construct(42);
     assert(BigInt_to_int(big_int) == 42);
     BigInt_ensure_digits(big_int, 1000);
@@ -339,6 +333,9 @@ void BigInt_test_basic() {
 
     // Test addition, subtraction, and comparison for all positive and
     // negative permutations of these integers
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing basic 2-argument operations\n");
+    }
     BigInt_test_operations(0, 0);
     BigInt_test_operations(1, 1);
     BigInt_test_operations(5, 5);
@@ -413,7 +410,7 @@ void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
 void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
         OPERATION_TYPE operation_type, int a, int b) {
     
-    if(BIGINT_TEST_LOGGING) {
+    if(BIGINT_TEST_LOGGING > 1) {
         printf("Testing %s for %i, %i\n", OPERATION_NAMES[operation_type], a, b);
     }
 
@@ -437,7 +434,7 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
             assert(0);
     }
  
-    if(BIGINT_TEST_LOGGING) {
+    if(BIGINT_TEST_LOGGING > 1) {
         printf("%s result: %i\n", OPERATION_NAMES[operation_type], result);
     }
 
@@ -464,6 +461,4 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
 }
 
 #endif // BUILD_BIGINT_TESTS
-
-
 

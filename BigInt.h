@@ -5,46 +5,92 @@
 #define NULL 0
 #endif
 
+// Define to build unit test suite
 #define BUILD_BIGINT_TESTS
-#define BIGINT_TEST_LOGGING 1
+
+// Specifies the amount of logging in the unit test suite.
+// Set to 0 to disable all logging.
+// Set to 1 for minimal logging.
+// Set to 2 for verbose logging. 
+#define BIGINT_TEST_LOGGING 2
 
 typedef struct BigInt {
-
-    unsigned char* digits;
-    unsigned int num_digits;
-    unsigned int num_allocated_digits;
-    int is_negative;
-
+    // TODO: Could save some space by bitpacking this.
+    unsigned char* digits; // Array of digits 0-9.  Greater indices hold more significant digits.
+    unsigned int num_digits; // Number of digits actually in the number.
+    unsigned int num_allocated_digits; // digits array has space for this many digits
+    int is_negative; // Nonzero if this BigInt is negative, zero otherwise.
 } BigInt;
 
+//============================================================================
+// Construction and assignment
+//============================================================================
+
+// Returns a pointer to a new BigInt initialized to the specified value.
+// Caller is responsible for freeing the new BigInt with a
+// corresponding call to BigInt_free.
 BigInt* BigInt_construct(int value);
+
+// Frees the memory for a BigInt allocated using BigInt_construct.
 void BigInt_free(BigInt* big_int);
 
 ///Sets the value of the target BigInt to the value of the source BigInt.
-// Assumes that target (and source) already points to a valid BigInt. 
+// Assumes that target and source already point to valid BigInts. 
 void BigInt_assign(BigInt* target, const BigInt* source);
+
+
+//============================================================================
+// Basic mathematical operations
+//============================================================================
 
 // Returns -1 if a < b, 0 if a == b, 1 if a > b 
 int BigInt_compare(const BigInt* a, const BigInt* b);
 
+// Adds the value in addend to big_int.  Places the result in big_int.
 void BigInt_add(BigInt* big_int, const BigInt* addend);
+
+// Subtracts the value of to_subtract from big_int. 
+// Places the result in big_int.
 void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract);
+
+// Multiplies the value in big_int by multiplier.  Places the
+// result in big_int.
 void BigInt_multiply(BigInt* big_int, const BigInt* multiplier);
 
+// Returns the value of big_int as an integer.  Requires that the
+// value of big_int fits within the size of an int on the target
+// environment.  Result is undefined if this is not the case.
 int BigInt_to_int(const BigInt* big_int);
 
+// Prints the contents of big_int to stdout.
 void BigInt_print(const BigInt* big_int);
 
-
+//============================================================================
 // Internal helpers
+//============================================================================
+
+// Ensure that big_int has space allocated for at least digits_needed digits.
 void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed);
+
+// Performs an unsigned comparison of the two BigInt parameters; that is, the
+// comparison is of their absolute values.  Returns 1 if |a| > |b|, 0 if |a| == |b|,
+// and -1 if |a| < |b|.
 int BigInt_compare_digits(const BigInt* a, const BigInt* b);
+
+// Performs an unsigned addition of to_add to big_int; adds the digits without regard
+// for the sign of either parameter. 
 void BigInt_add_digits(BigInt* big_int, const BigInt* to_add);
+
+// Performs an unsigned subtraction of to_subtract from big_int; subtracts the digits
+// without regard for the sign of either parameter. 
 void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
+
+//============================================================================
+// Unit tests
+//============================================================================
 
 #ifdef BUILD_BIGINT_TESTS
 
-//enum OPERATION_TYPE { ADD, SUBTRACT, COMPARE };
 typedef enum { ADD, SUBTRACT, MULTIPLY, COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
 
@@ -64,7 +110,6 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
         OPERATION_TYPE operation_type, int a, int b);
 
 #endif // BUILD_BIGINT_TESTS
-
 
 #endif // BIG_INT_H
 

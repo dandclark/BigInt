@@ -15,7 +15,6 @@
 #define BIGINT_TEST_LOGGING 2
 
 typedef struct BigInt {
-    // TODO: Could save some space by bitpacking this.
     unsigned char* digits; // Array of digits 0-9.  Greater indices hold more significant digits.
     unsigned int num_digits; // Number of digits actually in the number.
     unsigned int num_allocated_digits; // digits array has space for this many digits
@@ -48,14 +47,17 @@ int BigInt_compare(const BigInt* a, const BigInt* b);
 
 // Adds the value in addend to big_int.  Places the result in big_int.
 void BigInt_add(BigInt* big_int, const BigInt* addend);
+void BigInt_add_int(BigInt* big_int, const int addend);
 
 // Subtracts the value of to_subtract from big_int. 
 // Places the result in big_int.
 void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract);
+void BigInt_subtract_int(BigInt* big_int, const int to_subtract);
 
 // Multiplies the value in big_int by multiplier.  Places the
 // result in big_int.
 void BigInt_multiply(BigInt* big_int, const BigInt* multiplier);
+void BigInt_multiply_int(BigInt* big_int, const int multiplier);
 
 // Returns the value of big_int as an integer.  Requires that the
 // value of big_int fits within the size of an int on the target
@@ -91,7 +93,8 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 
 #ifdef BUILD_BIGINT_TESTS
 
-typedef enum { ADD, SUBTRACT, MULTIPLY, COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
+typedef enum { ADD, ADD_INT, SUBTRACT, SUBTRACT_INT, MULTIPLY, MULTIPLY_INT,
+        COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
 
 // Used to cast various BigInt functions to a generic type that can

@@ -114,6 +114,12 @@ void BigInt_add(BigInt* big_int, const BigInt* addend) {
     }
 }
 
+void BigInt_add_int(BigInt* big_int, const int addend) {
+    BigInt* big_int_addend = BigInt_construct(addend);
+    BigInt_add(big_int, big_int_addend);
+    BigInt_free(big_int_addend);
+}
+
 void BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
     unsigned int digits_needed = MAX(big_int->num_digits, addend->num_digits) + 1;
     BigInt_ensure_digits(big_int, digits_needed);
@@ -151,6 +157,12 @@ void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     big_int->is_negative = result_is_negative;
 }
 
+
+void BigInt_subtract_int(BigInt* big_int, const int to_subtract) {
+    BigInt* big_int_to_subtract = BigInt_construct(to_subtract);
+    BigInt_subtract(big_int, big_int_to_subtract);
+    BigInt_free(big_int_to_subtract);
+}
 
 void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
 
@@ -261,6 +273,11 @@ void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
     BigInt_free(addend);
 }
 
+void BigInt_multiply_int(BigInt* big_int, const int multiplier) {
+    BigInt* big_int_multiplier = BigInt_construct(multiplier);
+    BigInt_multiply(big_int, big_int_multiplier);
+    BigInt_free(big_int_multiplier);
+}
 
 int BigInt_to_int(const BigInt* big_int) {
     int value = 0;
@@ -301,7 +318,9 @@ void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
 
 #ifdef BUILD_BIGINT_TESTS
 
-const char* OPERATION_NAMES[] = {"Addition", "Subtraction", "Multiplication", "Comparison"};
+const char* OPERATION_NAMES[] = {"Addition", "Addition with int",
+        "Subtraction", "Subtraction with int", "Multiplication",
+        "Multiplication with int", "Comparison"};
 
 void BigInt_test_basic() {
 
@@ -375,11 +394,20 @@ void BigInt_test_operations(int a, int b) {
             case ADD:
                 BigInt_test_permutations((Generic_function)BigInt_add, operation_type, a, b); 
                 break;
+            case ADD_INT:
+                BigInt_test_permutations((Generic_function)BigInt_add_int, operation_type, a, b); 
+                break;
             case SUBTRACT:
                 BigInt_test_permutations((Generic_function)BigInt_subtract, operation_type, a, b); 
                 break;
+            case SUBTRACT_INT:
+                BigInt_test_permutations((Generic_function)BigInt_subtract_int, operation_type, a, b); 
+                break;
             case MULTIPLY:
                 BigInt_test_permutations((Generic_function)BigInt_multiply, operation_type, a, b); 
+                break;
+            case MULTIPLY_INT:
+                BigInt_test_permutations((Generic_function)BigInt_multiply_int, operation_type, a, b); 
                 break;
             case COMPARE:
                 BigInt_test_permutations((Generic_function)BigInt_compare, operation_type, a, b); 
@@ -426,6 +454,12 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
             ((void(*)(BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b);
             result = BigInt_to_int(big_int_a);
             break;
+        case ADD_INT:
+        case SUBTRACT_INT:
+        case MULTIPLY_INT:
+            ((void(*)(BigInt*, const int))(*BigInt_operation_to_test))(big_int_a, b);
+            result = BigInt_to_int(big_int_a);
+            break;
         case COMPARE:
             result = ((int(*)(const BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b);
             break;
@@ -440,12 +474,15 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
 
     switch(operation_type) {
         case ADD:
+        case ADD_INT:
             assert(result == a + b);
             break;
         case SUBTRACT:
+        case SUBTRACT_INT:
             assert(result == a - b);
             break;
         case MULTIPLY:
+        case MULTIPLY_INT:
             assert(result == a * b);
             break;
         case COMPARE:

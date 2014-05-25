@@ -37,9 +37,9 @@ int a = BigInt_to_int(big_int);
 BigInt operations take two BigInt parameters and place the result in the first parameter:
 ```
 BigInt* a = BigInt_construct(15);
-BigInt* b = BigInt_construct(-20);<br>
-BigInt_add(a, b);<br>
-BigInt_print(a); // Prints -5<br>
+BigInt* b = BigInt_construct(-20);
+BigInt_add(a, b);
+BigInt_print(a); // Prints -5
 ```
 
 The exception is BigInt_compare; this takes two BigInt parameters, changes neither, and returns the value of the comparison:

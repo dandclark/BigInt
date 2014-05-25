@@ -15,16 +15,24 @@ A BigInt is a struct with the following fields:
 ## Usage
 
 Obtain a pointer to a new BigInt through a call to BigInt_construct:
-```BigInt* new_big_int = BigInt_construct(42); // Obtains a BigInt initialized to 42```
+```
+BigInt* new_big_int = BigInt_construct(42); // Obtains a BigInt initialized to 42
+```
 
 The caller is responsible for freeing a BigInt allocated with BigInt_construct with a call to BigInt_free:
-```BigInt_free(new_big_int);```
+```
+BigInt_free(new_big_int);
+```
 
 The contents of a BigInt can be printed to stdout with a call to BigInt_print.
-```BigInt_print(big_int);```
+```
+BigInt_print(big_int);
+```
 
 Get a normal int back from a BigInt with using BigInt_to_int; but be careful; the BigInt must fit in an int type!
-```int a = BigInt_to_int(big_int);```
+```
+int a = BigInt_to_int(big_int);
+```
 
 BigInt operations take two BigInt parameters and place the result in the first parameter:
 ```

@@ -1,9 +1,6 @@
 
 #include <stdio.h>
 
-#define _DEBUG
-#include "CMemLeak.h"
-
 #include "BigInt.h"
 
 int main() {

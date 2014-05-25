@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define _DEBUG
-#include "CMemLeak.h"
-
 #include "BigInt.h"
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))

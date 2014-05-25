@@ -3,9 +3,6 @@
 
 #include "BigInt.h"
 
-#define _DEBUG
-#include "CMemLeak.h"
-
 const char* OPERATION_NAMES[] = {"Addition", "Addition with int",
         "Subtraction", "Subtraction with int", "Multiplication",
         "Multiplication with int", "Comparison"};

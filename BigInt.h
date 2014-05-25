@@ -9,7 +9,7 @@
 // Set to 0 to disable all logging.
 // Set to 1 for minimal logging.
 // Set to 2 for verbose logging. 
-#define BIGINT_TEST_LOGGING 2
+#define BIGINT_TEST_LOGGING 1
 
 typedef struct BigInt {
     unsigned char* digits; // Array of digits 0-9.  Greater indices hold more significant digits.

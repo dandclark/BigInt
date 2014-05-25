@@ -5,9 +5,6 @@
 #define NULL 0
 #endif
 
-// Define to build unit test suite
-#define BUILD_BIGINT_TESTS
-
 // Specifies the amount of logging in the unit test suite.
 // Set to 0 to disable all logging.
 // Set to 1 for minimal logging.
@@ -36,7 +33,6 @@ void BigInt_free(BigInt* big_int);
 ///Sets the value of the target BigInt to the value of the source BigInt.
 // Assumes that target and source already point to valid BigInts. 
 void BigInt_assign(BigInt* target, const BigInt* source);
-
 
 //============================================================================
 // Basic mathematical operations
@@ -91,8 +87,6 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 // Unit tests
 //============================================================================
 
-#ifdef BUILD_BIGINT_TESTS
-
 typedef enum { ADD, ADD_INT, SUBTRACT, SUBTRACT_INT, MULTIPLY, MULTIPLY_INT,
         COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
@@ -111,8 +105,6 @@ void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
         OPERATION_TYPE operation_type, int a, int b); 
 void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
         OPERATION_TYPE operation_type, int a, int b);
-
-#endif // BUILD_BIGINT_TESTS
 
 #endif // BIG_INT_H
 

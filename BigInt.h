@@ -34,6 +34,9 @@ void BigInt_free(BigInt* big_int);
 // Assumes that target and source already point to valid BigInts. 
 void BigInt_assign(BigInt* target, const BigInt* source);
 
+///Sets the value of the target BigInt to the value of the source int.
+void BigInt_assign_int(BigInt* target, const int source);
+
 //============================================================================
 // Basic mathematical operations
 //============================================================================

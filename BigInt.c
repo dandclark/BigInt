@@ -56,6 +56,32 @@ void BigInt_assign(BigInt* target, const BigInt* source)
     target->num_digits = source->num_digits;
 }
 
+void BigInt_assign_int(BigInt* target, const int source) {
+    int value = source;
+
+    if(value < 0) {
+        target->is_negative = 1;
+        value *= -1;
+    } else {
+        target->is_negative = 0;
+    }
+
+    target->num_digits = floor(log10(value)) + 1;
+
+    // Special case for 0
+    if(target->num_digits == 0) {
+        target->num_digits = 1;
+    }
+
+    BigInt_ensure_digits(target, target->num_digits);
+
+    int i;
+    for(i = 0; i < target->num_digits; i++) {
+        target->digits[i] = value % 10;
+        value /= 10;
+    }
+}
+
 int BigInt_compare(const BigInt* a, const BigInt* b) {
     // Quick return if one is negative and the other isn't
     if(a->num_digits > 0 || a->digits[0] > 0 || b->num_digits > 0 || b->digits[0] > 0) {

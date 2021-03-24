@@ -13,7 +13,7 @@ test.o: test.c
 	gcc -c test.c
 
 demo.o: demo.c
-	gcc -c test.c
+	gcc -c demo.c
 
 BigInt_test.o: BigInt_test.c
 	gcc -c BigInt_test.c

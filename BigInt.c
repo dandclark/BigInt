@@ -322,6 +322,7 @@ int BigInt_to_int(const BigInt* big_int) {
 
 void BigInt_print(const BigInt* big_int) {
     int i;
+    if (big_int->is_negative) printf("-");
     for(i = big_int->num_digits - 1; i >= 0; --i) {
         printf("%i", big_int->digits[i]);
     }

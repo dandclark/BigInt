@@ -5,12 +5,6 @@
 #define NULL 0
 #endif
 
-// Specifies the amount of logging in the unit test suite.
-// Set to 0 to disable all logging.
-// Set to 1 for minimal logging.
-// Set to 2 for verbose logging. 
-#define BIGINT_TEST_LOGGING 1
-
 typedef struct BigInt {
     unsigned char* digits; // Array of digits 0-9.  Greater indices hold more significant digits.
     unsigned int num_digits; // Number of digits actually in the number.
@@ -85,30 +79,6 @@ void BigInt_add_digits(BigInt* big_int, const BigInt* to_add);
 // Performs an unsigned subtraction of to_subtract from big_int; subtracts the digits
 // without regard for the sign of either parameter. 
 void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
-
-//============================================================================
-// Unit tests
-//============================================================================
-
-typedef enum { ADD, ADD_INT, SUBTRACT, SUBTRACT_INT, MULTIPLY, MULTIPLY_INT,
-        COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
-extern const char* OPERATION_NAMES[];
-
-// Used to cast various BigInt functions to a generic type that can
-// be passed through the test helpers BigInt_test_permutations and
-// BigInt_test_single_operation.  The function pointers are cast
-// back to the correct type in BigInt_test_single_operation using
-// the specified OPERATION_TYPE.
-typedef void*(*Generic_function)(void*);
-
-void BigInt_test_basic();
-void BigInt_test_big_multiplication();
-void BigInt_test_construct(int value);
-void BigInt_test_operations(int a, int b);
-void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b); 
-void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b);
 
 #endif // BIG_INT_H
 

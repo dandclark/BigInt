@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "BigInt.h"
+#include "BigInt_test.h"
 
 const char* OPERATION_NAMES[] = {"Addition", "Addition with int",
         "Subtraction", "Subtraction with int", "Multiplication",

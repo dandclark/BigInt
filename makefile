@@ -15,7 +15,7 @@ test.o: test.c
 demo.o: demo.c
 	gcc -g -c test.c
 
-BigInt_test.o: BigInt_test.c
+BigInt_test.o: BigInt_test.c BigInt_test.h
 	gcc -g -c BigInt_test.c
 
 clean: 

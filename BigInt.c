@@ -255,7 +255,7 @@ void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
     // the multiplication.
     BigInt* addend = BigInt_construct(0);    
 
-    unsigned int digits_needed = big_int->num_digits + addend->num_digits + 1;
+    unsigned int digits_needed = big_int->num_digits + multiplier->num_digits + 1;
     BigInt_ensure_digits(addend, digits_needed);
 
     int i, j;

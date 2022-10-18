@@ -62,6 +62,28 @@ void BigInt_test_basic() {
     BigInt_test_operations(1000, 1);
     BigInt_test_operations(2546, 2546);
     BigInt_test_operations(1234, 4321);
+    BigInt_test_operations(999999999, 123456789);
+}
+
+// This is basically a stress-test for multiplication.
+// Try to root out any allocation issues by building up
+// to multiplications of very large numbers, which
+// will likely crash if we're not allocating enough space.
+void BigInt_test_big_multiplication() {
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing big multiplications\n");
+    }
+
+    BigInt* a = BigInt_construct(99999);
+    BigInt* b = BigInt_construct(12345);
+    for(int i = 0; i < 50; ++i) {
+        BigInt_multiply(a, b);
+    }
+    for(int i = 0; i < 50; ++i) {
+        BigInt_multiply(b, a);
+    }
+    BigInt_free(a);
+    BigInt_free(b);
 }
 
 void BigInt_test_construct(int value) {

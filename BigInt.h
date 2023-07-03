@@ -60,6 +60,9 @@ int BigInt_to_int(const BigInt* big_int);
 // Prints the contents of big_int to stdout.
 void BigInt_print(const BigInt* big_int);
 
+// Prints the contents of big_int to output stream.
+void BigInt_fprint(FILE *dest, const BigInt* big_int);
+
 //============================================================================
 // Internal helpers
 //============================================================================

@@ -328,6 +328,14 @@ void BigInt_print(const BigInt* big_int) {
     }
 }
 
+void BigInt_fprint(FILE *dest, const BigInt* big_int) {
+    int i;
+    if (big_int->is_negative) fprintf(dest, "-");
+    for(i = big_int->num_digits - 1; i >= 0; --i) {
+        fprintf(dest, "%i", big_int->digits[i]);
+    }
+}
+
 void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
     if(big_int->num_allocated_digits < digits_needed) {
         unsigned char* digits = big_int->digits;

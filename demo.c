@@ -28,6 +28,13 @@ int main() {
     BigInt_print(a); // Prints -5
     printf("\n");
 
+    FILE *test = fopen("test.dat", "w");
+    
+    BigInt_fprint(test, a);
+    fprintf(test, "\n");
+
+    fclose(test);
+
     // The exception is BigInt_compare; this takes two BigInt parameters, changes neither, and returns the value of the comparison:
     BigInt_assign_int(a, 15);
     BigInt_assign_int(b, -20);

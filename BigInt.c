@@ -1,25 +1,48 @@
 #include <assert.h>
 #include <math.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "BigInt.h"
+#include "safe_math_impl.h"
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
+#if UNIT_MAX >> 32 == 0
+#	define check_add_int_int check_add_int32_int32
+#	define check_mul_int_int check_mul_int32_int32
+#else
+#	if UNIT_MAX >> 64 == 0
+#		define check_add_int_int check_add_int64_int64
+#		define check_mul_int_int check_mul_int64_int64
+#	else
+#		error unsupported integer size
+#	endif
+#endif
+
 BigInt* BigInt_construct(int value) {
 
+    errno = 0;
     BigInt* new_big_int = malloc(sizeof(BigInt));
-    
+    if(!new_big_int) {
+        if(!errno) {
+            errno = ENOMEM;
+        }
+        return NULL;
+    }
+    unsigned int value2;
     if(value < 0) {
         new_big_int->is_negative = 1;
-        value *= -1;
+        value2 = -value;
     } else {
         new_big_int->is_negative = 0;
+        value2 = value;
     }
 
-    new_big_int->num_digits = floor(log10(value)) + 1;
+    new_big_int->num_digits = floor(log10(value2)) + 1;
 
     // Special case for 0
     if(new_big_int->num_digits == 0) {
@@ -27,43 +50,59 @@ BigInt* BigInt_construct(int value) {
     }
 
     new_big_int->num_allocated_digits = new_big_int->num_digits;
+    errno = 0;
     new_big_int->digits = malloc(new_big_int->num_allocated_digits * sizeof(unsigned char));
+    if(!new_big_int->digits) {
+        free(new_big_int);
+        if(!errno) {
+            errno = ENOMEM;
+        }
+        return NULL;
+    }
 
-    int i;
-    for(i = 0; i < new_big_int->num_digits; i++) {
-        new_big_int->digits[i] = value % 10;
-        value /= 10;
+    unsigned int count = new_big_int->num_digits;
+    char* digits = new_big_int->digits;
+    while( count-- ) {
+        (*digits++) = value2 % 10;
+        value2 /= 10;
     }
 
     return new_big_int;
 }
 
 void BigInt_free(BigInt* big_int) {
-    free(big_int->digits);
-    free(big_int);
+    if(big_int) {
+        free(big_int->digits);
+        free(big_int);
+    }
 }
 
-void BigInt_assign(BigInt* target, const BigInt* source)
+BOOL BigInt_assign(BigInt* target, const BigInt* source)
 {
-    BigInt_ensure_digits(target, source->num_digits);
+    if(!BigInt_ensure_digits(target, source->num_digits)) {
+        return 0;
+    }
 
-    int i;
-    for(i = 0; i < source->num_digits; ++i) {
-        target->digits[i] = source->digits[i];
+    unsigned int count = source->num_digits;
+    char* tgt = target->digits;
+    const char* src = source->digits;
+    while(count--) {
+        *tgt++ = *src++;
     }
 
     target->is_negative = source->is_negative;
     target->num_digits = source->num_digits;
+    return 1;
 }
 
-void BigInt_assign_int(BigInt* target, const int source) {
-    int value = source;
-
+BOOL BigInt_assign_int(BigInt* target, const int source) {
+    unsigned int value;
     if(value < 0) {
         target->is_negative = 1;
-        value *= -1;
+        value = -source;
     } else {
         target->is_negative = 0;
+        value = source;
     }
 
     target->num_digits = floor(log10(value)) + 1;
@@ -73,13 +112,17 @@ void BigInt_assign_int(BigInt* target, const int source) {
         target->num_digits = 1;
     }
 
-    BigInt_ensure_digits(target, target->num_digits);
+    if(!BigInt_ensure_digits(target, target->num_digits)) {
+        return 0;
+    }
 
-    int i;
-    for(i = 0; i < target->num_digits; i++) {
-        target->digits[i] = value % 10;
+    unsigned int count = target->num_digits;
+    char* digits = target->digits;
+    while(count--) {
+        *(digits++) = value % 10;
         value /= 10;
     }
+    return 1;
 }
 
 int BigInt_compare(const BigInt* a, const BigInt* b) {
@@ -100,18 +143,22 @@ int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
 
     // Quick return if one number has more digits than the other
     if(a->num_digits > b->num_digits) {
-       return 1; 
+       return 1;
     } else if(a->num_digits < b->num_digits) {
-       return -1; 
+       return -1;
     }
 
     // Both have the same number of digits, so we actually have to loop through until we
     // find one that doesn't match.
-    int i;
-    for(i = a->num_digits - 1; i >= 0; --i) {
-        if(a->digits[i] > b->digits[i]) {
+    unsigned int count = a->num_digits;
+    const char* pa = &a->digits[count-1];
+    const char* pb = &b->digits[count-1];
+    while(count--) {
+        char da = *(pa--);
+        char db = *(pb--);
+        if(da > db) {
             return 1;
-        } else if(a->digits[i] < b->digits[i]) {
+        } else if(da < db) {
             return -1;
         }
     }
@@ -120,50 +167,62 @@ int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
     return 0;
 }
 
-void BigInt_add(BigInt* big_int, const BigInt* addend) {
+BOOL BigInt_add(BigInt* big_int, const BigInt* addend) {
     if(big_int->is_negative == addend->is_negative) {
         // Sign will never change in this case so just leave
         // it as-is.
-        BigInt_add_digits(big_int, addend);
+        if(!BigInt_add_digits(big_int, addend)) {
+            return 0;
+        }
     } else {
         // Figure out the sign.  Need to do this before calculating the digits of
         // the digits result because changing those in big_int will affect the result
         // of the compare.
         unsigned int result_is_negative = BigInt_compare_digits(big_int, addend) > 0 ?
                 big_int->is_negative : addend->is_negative;
-    
-        BigInt_subtract_digits(big_int, addend);
+
+        if(!BigInt_subtract_digits(big_int, addend)) {
+            return 0;
+        }
         big_int->is_negative = result_is_negative;
     }
+    return 1;
 }
 
-void BigInt_add_int(BigInt* big_int, const int addend) {
+BOOL BigInt_add_int(BigInt* big_int, const int addend) {
     BigInt* big_int_addend = BigInt_construct(addend);
-    BigInt_add(big_int, big_int_addend);
+    if(!big_int_addend) {
+        return 0;
+    }
+    BOOL result = BigInt_add(big_int, big_int_addend);
     BigInt_free(big_int_addend);
+    return result;
 }
 
-void BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
-    unsigned int digits_needed = MAX(big_int->num_digits, addend->num_digits) + 1;
-    BigInt_ensure_digits(big_int, digits_needed);
+BOOL BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
+    unsigned int digits_needed = MAX(big_int->num_digits, addend->num_digits) + 1; // TODO FIXME: this can overflow...
+    if(!BigInt_ensure_digits(big_int, digits_needed)) {
+        return 0;
+    }
 
     int i;
     int carry = 0;
-    for(i = 0; i < addend->num_digits || carry > 0; ++i) {
-        // Append another digit if necessary 
+    for(i = 0; i < addend->num_digits || carry > 0; ++i) { // TODO FIXME: refactor to protect from integer overflow
+        // Append another digit if necessary
         if(i == big_int->num_digits) {
             ++big_int->num_digits;
             big_int->digits[i] = 0;
         }
 
-        unsigned int addend_digit = i < addend->num_digits ? addend->digits[i] : 0; 
+        unsigned int addend_digit = i < addend->num_digits ? addend->digits[i] : 0;
         unsigned int total = big_int->digits[i] + addend_digit + carry;
         big_int->digits[i] = total % 10;
-        carry = (total >= 10) ? 1 : 0; 
+        carry = (total >= 10) ? 1 : 0;
     }
+    return 1;
 }
 
-void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
+BOOL BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     // Figure out the sign.  Need to do this before calculating the digits of
     // the digits result because changing those in big_int will affect the result
     // of the compare.
@@ -171,26 +230,37 @@ void BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     
     // Calculate the digits
     if(big_int->is_negative == to_subtract->is_negative) {
-        BigInt_subtract_digits(big_int, to_subtract);
+        if(!BigInt_subtract_digits(big_int, to_subtract)) {
+            return 0;
+        }
     } else {
-        BigInt_add_digits(big_int, to_subtract);
+        if(!BigInt_add_digits(big_int, to_subtract)) {
+            return 0;
+        }
     }
     
     // Figure out the sign
     big_int->is_negative = result_is_negative;
+    return 1;
 }
 
 
-void BigInt_subtract_int(BigInt* big_int, const int to_subtract) {
+BOOL BigInt_subtract_int(BigInt* big_int, const int to_subtract) {
     BigInt* big_int_to_subtract = BigInt_construct(to_subtract);
-    BigInt_subtract(big_int, big_int_to_subtract);
+    if(!big_int_to_subtract) {
+        return 0;
+    }
+    BOOL result = BigInt_subtract(big_int, big_int_to_subtract);
     BigInt_free(big_int_to_subtract);
+    return result;
 }
 
-void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
+BOOL BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
 
     unsigned int digits_needed = MAX(big_int->num_digits, to_subtract->num_digits) + 1;
-    BigInt_ensure_digits(big_int, digits_needed);
+    if(!BigInt_ensure_digits(big_int, digits_needed)) {
+        return 0;
+    }
     
     // Determine the larger int.  This will go on "top"
     // of the subtraction.  Sign doesn't matter here since we've already
@@ -212,7 +282,7 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
         smaller_int_num_digits = big_int->num_digits;
     }
 
-    // Actually carry out the subtraction. 
+    // Actually carry out the subtraction.
     int i;
     int carry = 0;
     big_int->num_digits = 1;
@@ -223,7 +293,7 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
             new_digit = (int)greater_int_digits[i] - (int)smaller_int_digits[i] + carry;
         } else {
             new_digit = (int)greater_int_digits[i] + carry;
-        } 
+        }
 
         // Carry 10 from the next digit if necessary
         if(new_digit < 0) {
@@ -241,22 +311,34 @@ void BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     }
 
     assert(carry == 0);
+    return 1;
 }
 
 // Multiply using the pencil and paper method.  Complexity is O(n*m) where n, m are
 // the number of digits in big_int and multiplier, respectively.
-void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
+BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
 
     // Need to keep track of the result in a separate variable because we need
     // big_int to retain its original value throughout the course of the calculation.
     BigInt* result = BigInt_construct(0);
+    if(!result) {
+        return 0;
+    }
 
     // addend will hold the amount to be added to the result for each step of
     // the multiplication.
-    BigInt* addend = BigInt_construct(0);    
+    BigInt* addend = BigInt_construct(0);
+    if(!addend) {
+        BigInt_free(result);
+        return 0;
+    }
 
     unsigned int digits_needed = big_int->num_digits + multiplier->num_digits + 1;
-    BigInt_ensure_digits(addend, digits_needed);
+    if(!BigInt_ensure_digits(addend, digits_needed)) {
+        BigInt_free(result);
+        BigInt_free(addend);
+        return 0;
+    }
 
     int i, j;
     int carry = 0;
@@ -267,14 +349,14 @@ void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
             addend->digits[i - 1] = 0;
         }
 
-        for(j = 0; j < big_int->num_digits || carry > 0; ++j) {
+        for(j = 0; j < big_int->num_digits || carry > 0; ++j) { // TODO FIXME: potential infinite loop
             if(j + i == addend->num_digits) {
                 ++addend->num_digits;
             }
 
             assert(digits_needed >= j + 1);
-           
-            int total; 
+
+            int total;
             if(j < big_int->num_digits) {
                 total = (big_int->digits[j] * multiplier->digits[i]) + carry;
             } else {
@@ -285,66 +367,101 @@ void BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
             carry = total / 10;
         }
 
-        BigInt_add(result, addend);
+        if(!BigInt_add(result, addend)) {
+            BigInt_free(result);
+            BigInt_free(addend);
+            return 0;
+        }
     }
 
-    result->is_negative = big_int->is_negative != multiplier->is_negative;    
+    result->is_negative = big_int->is_negative != multiplier->is_negative;
 
     // Place the result in big_int and clean things up
-    BigInt_assign(big_int, result);
+    BOOL success = BigInt_assign(big_int, result);
     BigInt_free(result);
     BigInt_free(addend);
+    return success;
 }
 
-void BigInt_multiply_int(BigInt* big_int, const int multiplier) {
+BOOL BigInt_multiply_int(BigInt* big_int, const int multiplier) {
     BigInt* big_int_multiplier = BigInt_construct(multiplier);
-    BigInt_multiply(big_int, big_int_multiplier);
+    if(!big_int_multiplier) {
+        return 0;
+    }
+    BOOL result = BigInt_multiply(big_int, big_int_multiplier);
     BigInt_free(big_int_multiplier);
+    return result;
 }
 
-int BigInt_to_int(const BigInt* big_int) {
-    int value = 0;
+BOOL BigInt_to_int(int* value, const BigInt* big_int) {
+    *value = 0;
     int tens_multiplier = 1;
 
-    int i;
-    for(i = 0; i < big_int->num_digits; i++) {
-        value += big_int->digits[i] * tens_multiplier;
-        tens_multiplier *= 10;
-    } 
-
-    if (big_int->is_negative) {
-        value *= -1;
+    unsigned int num_digits = big_int->num_digits;
+    const char* digits = big_int->digits;
+    
+    // don't process any most significant digits that happen to be zero
+    // (avoids unnecessary tens_multiplier overflow)
+    while( num_digits && !digits[num_digits-1] ){
+        num_digits--;
     }
 
-    return value;
+    // prefill value so that we can avoid an unnecessary tens_multiplier overflow
+    if(num_digits) {
+        *value = *(digits++);
+        num_digits--;
+    }
+    while(num_digits--) {
+        int digit = *(digits++);
+        if(
+            !check_mul_int_int(tens_multiplier, 10, &tens_multiplier)
+            || !check_mul_int_int(digit, tens_multiplier, &digit)
+            || !check_add_int_int(*value, digit, value)
+        ) {
+            errno = ERANGE;
+            return 0;
+        }
+    }
+
+    if (big_int->is_negative) {
+        if(!check_mul_int_int(*value, -1, value)) {
+            errno = ERANGE;
+            return 0;
+        }
+    }
+
+    return 1;
 
 }
 
 void BigInt_print(const BigInt* big_int) {
-    int i;
-    if (big_int->is_negative) printf("-");
-    for(i = big_int->num_digits - 1; i >= 0; --i) {
-        printf("%i", big_int->digits[i]);
-    }
+    BigInt_fprint(stdout, big_int);
 }
 
 void BigInt_fprint(FILE *dest, const BigInt* big_int) {
-    int i;
-    if (big_int->is_negative) fprintf(dest, "-");
-    for(i = big_int->num_digits - 1; i >= 0; --i) {
-        fprintf(dest, "%i", big_int->digits[i]);
+    const char* base = big_int->digits;
+    const char* digits = &base[big_int->num_digits-1];
+    if (big_int->is_negative) fputc('0', dest);
+    while(digits >= base) {
+        fputc('0' + *(digits--), dest);
     }
 }
 
-void BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
+BOOL BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
     if(big_int->num_allocated_digits < digits_needed) {
-        unsigned char* digits = big_int->digits;
+        unsigned int bytes = big_int->num_digits * sizeof(unsigned char);
+        unsigned char* new_digits = malloc(bytes);
+        if(!new_digits) {
+            return 0;
+        }
 
-        big_int->digits = malloc(digits_needed * sizeof(unsigned char));
-        memcpy(big_int->digits, digits, big_int->num_digits);    
+        unsigned char* old_digits = big_int->digits;
+        memcpy(new_digits, old_digits, bytes);
+        big_int->digits = new_digits;
         big_int->num_allocated_digits = digits_needed;
 
-        free(digits);
+        free(old_digits);
     }
+    return 1;
 }
 

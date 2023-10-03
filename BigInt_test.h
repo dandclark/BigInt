@@ -8,11 +8,13 @@
 // Specifies the amount of logging in the unit test suite.
 // Set to 0 to disable all logging.
 // Set to 1 for minimal logging.
-// Set to 2 for verbose logging. 
+// Set to 2 for verbose logging.
+#ifndef BIGINT_TEST_LOGGING
 #define BIGINT_TEST_LOGGING 1
+#endif//BIGINT_TEST_LOGGING
 
 typedef enum { ADD, ADD_INT, SUBTRACT, SUBTRACT_INT, MULTIPLY, MULTIPLY_INT,
-        COMPARE, OPERATION_TYPE_MAX} OPERATION_TYPE;
+        COMPARE, OPERATION_TYPE_COUNT} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
 
 // Used to cast various BigInt functions to a generic type that can

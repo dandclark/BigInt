@@ -13,14 +13,67 @@
 
 #if UNIT_MAX >> 32 == 0
 #	define check_add_int_int check_add_int32_int32
+#	define check_add_uint_uint check_add_uint32_uint32
 #	define check_mul_int_int check_mul_int32_int32
+#	define check_mul_uint_uint check_mul_uint32_uint32
 #else
 #	if UNIT_MAX >> 64 == 0
 #		define check_add_int_int check_add_int64_int64
+#		define check_add_uint_uint check_add_uint64_uint64
 #		define check_mul_int_int check_mul_int64_int64
+#		define check_mul_uint_uint check_mul_uint64_uint64
 #	else
 #		error unsupported integer size
 #	endif
+#endif
+
+#ifndef BIGINT_REDZONE
+#define BIGINT_REDZONE 0
+#endif//BIGINT_REDZONE
+
+#if BIGINT_REDZONE
+unsigned char* malloc_digits(unsigned int num_digits) {
+    unsigned int bytes;
+    if(
+        !check_mul_uint_uint(num_digits, sizeof(unsigned char), &bytes)
+        || !check_add_uint_uint(bytes, BIGINT_REDZONE * 2, &bytes)
+    ) {
+        errno = ENOMEM;
+        return NULL;
+    }
+    unsigned char* p = malloc(bytes);
+    memset(p, 0x42, bytes);
+    return p + BIGINT_REDZONE;
+}
+
+unsigned char* okay_digits(unsigned char* digits, unsigned int num_digits) {
+    unsigned char* rz1 = digits - BIGINT_REDZONE;
+    unsigned char* rz2 = digits + num_digits * sizeof(unsigned char);
+    for(unsigned int i = 0; i < BIGINT_REDZONE; i++) {
+        if(rz1[i] != 0x42) {
+            fprintf(stderr, "redzone underflow\n");
+            return NULL;
+        }
+        if(rz2[i] != 0x42) {
+            fprintf(stderr, "redzone overflow\n");
+            return NULL;
+        }
+    }
+    return rz1;
+}
+
+void free_digits(unsigned char* digits, unsigned int num_digits) {
+    if(!digits) {
+        return;
+    }
+    unsigned char* p = okay_digits(digits, num_digits);
+    assert(p);
+    free(p);
+}
+#else
+#define malloc_digits(num_digits) malloc((num_digits) * sizeof(unsigned char))
+#define okay_digits(digits,num_digits) 1
+#define free_digits(digits,num_digits) free(digits)
 #endif
 
 BigInt* BigInt_construct(int value) {
@@ -51,7 +104,7 @@ BigInt* BigInt_construct(int value) {
 
     new_big_int->num_allocated_digits = new_big_int->num_digits;
     errno = 0;
-    new_big_int->digits = malloc(new_big_int->num_allocated_digits * sizeof(unsigned char));
+    new_big_int->digits = malloc_digits(new_big_int->num_allocated_digits);
     if(!new_big_int->digits) {
         free(new_big_int);
         if(!errno) {
@@ -61,7 +114,7 @@ BigInt* BigInt_construct(int value) {
     }
 
     unsigned int count = new_big_int->num_digits;
-    char* digits = new_big_int->digits;
+    unsigned char* digits = new_big_int->digits;
     while( count-- ) {
         (*digits++) = value2 % 10;
         value2 /= 10;
@@ -72,7 +125,7 @@ BigInt* BigInt_construct(int value) {
 
 void BigInt_free(BigInt* big_int) {
     if(big_int) {
-        free(big_int->digits);
+        free_digits(big_int->digits, big_int->num_allocated_digits);
         free(big_int);
     }
 }
@@ -84,8 +137,8 @@ BOOL BigInt_assign(BigInt* target, const BigInt* source)
     }
 
     unsigned int count = source->num_digits;
-    char* tgt = target->digits;
-    const char* src = source->digits;
+    unsigned char* tgt = target->digits;
+    const unsigned char* src = source->digits;
     while(count--) {
         *tgt++ = *src++;
     }
@@ -117,7 +170,7 @@ BOOL BigInt_assign_int(BigInt* target, const int source) {
     }
 
     unsigned int count = target->num_digits;
-    char* digits = target->digits;
+    unsigned char* digits = target->digits;
     while(count--) {
         *(digits++) = value % 10;
         value /= 10;
@@ -151,8 +204,8 @@ int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
     // Both have the same number of digits, so we actually have to loop through until we
     // find one that doesn't match.
     unsigned int count = a->num_digits;
-    const char* pa = &a->digits[count-1];
-    const char* pb = &b->digits[count-1];
+    const unsigned char* pa = &a->digits[count-1];
+    const unsigned char* pb = &b->digits[count-1];
     while(count--) {
         char da = *(pa--);
         char db = *(pb--);
@@ -398,7 +451,7 @@ BOOL BigInt_to_int(int* value, const BigInt* big_int) {
     int tens_multiplier = 1;
 
     unsigned int num_digits = big_int->num_digits;
-    const char* digits = big_int->digits;
+    const unsigned char* digits = big_int->digits;
     
     // don't process any most significant digits that happen to be zero
     // (avoids unnecessary tens_multiplier overflow)
@@ -439,8 +492,8 @@ void BigInt_print(const BigInt* big_int) {
 }
 
 void BigInt_fprint(FILE *dest, const BigInt* big_int) {
-    const char* base = big_int->digits;
-    const char* digits = &base[big_int->num_digits-1];
+    const unsigned char* base = big_int->digits;
+    const unsigned char* digits = &base[big_int->num_digits-1];
     if (big_int->is_negative) fputc('0', dest);
     while(digits >= base) {
         fputc('0' + *(digits--), dest);
@@ -449,18 +502,20 @@ void BigInt_fprint(FILE *dest, const BigInt* big_int) {
 
 BOOL BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
     if(big_int->num_allocated_digits < digits_needed) {
-        unsigned int bytes = big_int->num_digits * sizeof(unsigned char);
-        unsigned char* new_digits = malloc(bytes);
+        assert(okay_digits(big_int->digits, big_int->num_allocated_digits));
+        unsigned char* new_digits = malloc_digits(digits_needed);
         if(!new_digits) {
             return 0;
         }
-
+        assert(okay_digits(new_digits, digits_needed));
+        unsigned int old_allocated = big_int->num_allocated_digits;
         unsigned char* old_digits = big_int->digits;
-        memcpy(new_digits, old_digits, bytes);
+        memcpy(new_digits, old_digits, big_int->num_digits * sizeof(unsigned char));
         big_int->digits = new_digits;
         big_int->num_allocated_digits = digits_needed;
 
-        free(old_digits);
+        free_digits(old_digits, old_allocated);
+        assert(okay_digits(big_int->digits, big_int->num_allocated_digits));
     }
     return 1;
 }

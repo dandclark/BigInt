@@ -33,11 +33,11 @@ void BigInt_test_basic() {
     BigInt* big_int = BigInt_construct(42);
     assert(big_int);
     int value;
-    assert(BigInt_to_int(&value, big_int) && value == 42);
+    assert(BigInt_to_int(big_int, &value) && value == 42);
     assert(BigInt_ensure_digits(big_int, 1000));
-    assert(BigInt_to_int(&value, big_int) && value  == 42);
+    assert(BigInt_to_int(big_int, &value) && value  == 42);
     assert(BigInt_ensure_digits(big_int, 1));
-    assert(BigInt_to_int(&value, big_int) && value == 42);
+    assert(BigInt_to_int(big_int, &value) && value == 42);
     BigInt_free(big_int);
 
     // Test addition, subtraction, and comparison for all positive and
@@ -96,7 +96,7 @@ void BigInt_test_big_multiplication() {
 void BigInt_test_construct(int value) {
     BigInt* big_int = BigInt_construct(value);
     int value2;
-    assert(BigInt_to_int(&value2, big_int) && value2 == value);
+    assert(BigInt_to_int(big_int, &value2) && value2 == value);
     BigInt_free(big_int);
 }
 
@@ -169,13 +169,13 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
         case SUBTRACT:
         case MULTIPLY:
             assert(((BOOL(*)(BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b));
-            assert(BigInt_to_int(&result, big_int_a));
+            assert(BigInt_to_int(big_int_a, &result));
             break;
         case ADD_INT:
         case SUBTRACT_INT:
         case MULTIPLY_INT:
             assert(((BOOL(*)(BigInt*, const int))(*BigInt_operation_to_test))(big_int_a, b));
-            assert(BigInt_to_int(&result, big_int_a));
+            assert(BigInt_to_int(big_int_a, &result));
             break;
         case COMPARE:
             result = ((int(*)(const BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b);

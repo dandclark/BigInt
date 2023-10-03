@@ -9,7 +9,8 @@ int main() {
     BigInt* new_big_int = BigInt_construct(42);
     
     // Get a normal int back (the BigInt must fit in an int type)
-    int as_int = BigInt_to_int(new_big_int);
+    int as_int;
+    assert(BigInt_to_int(new_big_int, &as_int));
 
     // Print to stdout with BigInt_print 
     printf("BigInt is: ");

@@ -78,12 +78,8 @@ void free_digits(unsigned char* digits, unsigned int num_digits) {
 
 BigInt* BigInt_construct(int value) {
 
-    errno = 0;
     BigInt* new_big_int = malloc(sizeof(BigInt));
     if(!new_big_int) {
-        if(!errno) {
-            errno = ENOMEM;
-        }
         return NULL;
     }
     unsigned int value2;
@@ -115,7 +111,7 @@ BigInt* BigInt_construct(int value) {
 
     unsigned int count = new_big_int->num_digits;
     unsigned char* digits = new_big_int->digits;
-    while( count-- ) {
+    while(count--) {
         (*digits++) = value2 % 10;
         value2 /= 10;
     }
@@ -446,7 +442,7 @@ BOOL BigInt_multiply_int(BigInt* big_int, const int multiplier) {
     return result;
 }
 
-BOOL BigInt_to_int(int* value, const BigInt* big_int) {
+BOOL BigInt_to_int(const BigInt* big_int, int* value) {
     *value = 0;
     int tens_multiplier = 1;
 

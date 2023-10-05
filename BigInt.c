@@ -32,6 +32,10 @@
 #endif//BIGINT_REDZONE
 
 #if BIGINT_REDZONE
+// if BIGINT_REDZONE is set to a value, that value is the number of bytes
+// of extra allocation at the front and the back of the digits buffer.
+// those "redzones" will then be filled with an uncommon value (0x42)
+// when freed, those "redzones" will be checked to make sure they weren't modified
 unsigned char* malloc_digits(unsigned int num_digits) {
     unsigned int bytes;
     if(
@@ -67,7 +71,7 @@ void free_digits(unsigned char* digits, unsigned int num_digits) {
         return;
     }
     unsigned char* p = okay_digits(digits, num_digits);
-    assert(p);
+    assert(p); // redzone violation
     free(p);
 }
 #else
@@ -99,13 +103,9 @@ BigInt* BigInt_construct(int value) {
     }
 
     new_big_int->num_allocated_digits = new_big_int->num_digits;
-    errno = 0;
     new_big_int->digits = malloc_digits(new_big_int->num_allocated_digits);
     if(!new_big_int->digits) {
         free(new_big_int);
-        if(!errno) {
-            errno = ENOMEM;
-        }
         return NULL;
     }
 
@@ -451,7 +451,7 @@ BOOL BigInt_to_int(const BigInt* big_int, int* value) {
     
     // don't process any most significant digits that happen to be zero
     // (avoids unnecessary tens_multiplier overflow)
-    while( num_digits && !digits[num_digits-1] ){
+    while(num_digits && !digits[num_digits-1]) {
         num_digits--;
     }
 
@@ -490,7 +490,7 @@ void BigInt_print(const BigInt* big_int) {
 void BigInt_fprint(FILE *dest, const BigInt* big_int) {
     const unsigned char* base = big_int->digits;
     const unsigned char* digits = &base[big_int->num_digits-1];
-    if (big_int->is_negative) fputc('0', dest);
+    if (big_int->is_negative) fputc('-', dest);
     while(digits >= base) {
         fputc('0' + *(digits--), dest);
     }

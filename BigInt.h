@@ -51,7 +51,7 @@ int BigInt_compare(const BigInt* a, const BigInt* b);
 BOOL BigInt_add(BigInt* big_int, const BigInt* addend);
 BOOL BigInt_add_int(BigInt* big_int, const int addend);
 
-// Subtracts the value of to_subtract from big_int. 
+// Subtracts the value of to_subtract from big_int.
 // Places the result in big_int.
 // returns non-zero on success or 0 on failure
 BOOL BigInt_subtract(BigInt* big_int, const BigInt* to_subtract);

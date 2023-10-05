@@ -35,7 +35,7 @@ void BigInt_test_basic() {
     int value;
     assert(BigInt_to_int(big_int, &value) && value == 42);
     assert(BigInt_ensure_digits(big_int, 1000));
-    assert(BigInt_to_int(big_int, &value) && value  == 42);
+    assert(BigInt_to_int(big_int, &value) && value == 42);
     assert(BigInt_ensure_digits(big_int, 1));
     assert(BigInt_to_int(big_int, &value) && value == 42);
     BigInt_free(big_int);
@@ -213,4 +213,3 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
     BigInt_free(big_int_a);
     BigInt_free(big_int_b);
 }
-

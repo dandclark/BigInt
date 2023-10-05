@@ -29,7 +29,7 @@ The contents of a BigInt can be printed to stdout with a call to BigInt_print.
 BigInt_print(big_int);
 ```
 
-Get a normal int back from a BigInt with using BigInt_to_int; but be careful; if the BigInt doesn't fit in an int type, the function will return 0 and the output will be unchanged and 
+Get a normal int back from a BigInt with using BigInt_to_int; but be careful; if the BigInt doesn't fit in an int type, the function will return 0 and the value in the int argument will be undefined.
 ```
 int a;
 assert(BigInt_to_int(big_int, &a));

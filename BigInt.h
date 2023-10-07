@@ -27,6 +27,11 @@ typedef struct BigInt {
 // corresponding call to BigInt_free.
 BigInt* BigInt_construct(int value);
 
+// Returns a pointer to a new BigInt initialized from digits in the specified
+// zero-terminated string. Caller is responsible for freeing the new BigInt
+// with a corresponding call to BigInt_free
+BigInt* BigInt_from_string(const char* str);
+
 // Frees the memory for a BigInt allocated using BigInt_construct.
 void BigInt_free(BigInt* big_int);
 
@@ -38,6 +43,25 @@ BOOL BigInt_assign(BigInt* target, const BigInt* source);
 ///Sets the value of the target BigInt to the value of the source int.
 // returns non-zero on success or 0 on failure
 BOOL BigInt_assign_int(BigInt* target, const int source);
+
+// Prints the contents of big_int to stdout.
+void BigInt_print(const BigInt* big_int);
+
+// Prints the contents of big_int to output stream.
+void BigInt_fprint(FILE *dest, const BigInt* big_int);
+
+// what would be the length of a string if this BigInt were converted to a string
+// (see BigInt_to_string() below)
+unsigned int BigInt_strlen(const BigInt* big_int);
+
+// write BigInt to a string buffer, returns non-zero on success
+// returns zero if BigInt doesn't fit into buf.
+// buf_size *must* include the terminating zero byte
+BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size);
+
+// convert BigInt to a newly allocated string.
+// returns NULL on failure.
+char* BigInt_to_new_string(const BigInt* big_int);
 
 //============================================================================
 // Basic mathematical operations
@@ -68,12 +92,6 @@ BOOL BigInt_multiply_int(BigInt* big_int, const int multiplier);
 // environment.  returns non-zero on success or 0 on failure.
 // result is undefined on failure.
 BOOL BigInt_to_int(const BigInt* big_int, int* result);
-
-// Prints the contents of big_int to stdout.
-void BigInt_print(const BigInt* big_int);
-
-// Prints the contents of big_int to output stream.
-void BigInt_fprint(FILE *dest, const BigInt* big_int);
 
 //============================================================================
 // Internal helpers

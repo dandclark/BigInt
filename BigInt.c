@@ -12,19 +12,19 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 #if UNIT_MAX >> 32 == 0
-#	define check_add_int_int check_add_int32_int32
-#	define check_add_uint_uint check_add_uint32_uint32
-#	define check_mul_int_int check_mul_int32_int32
-#	define check_mul_uint_uint check_mul_uint32_uint32
+#    define check_add_int_int check_add_int32_int32
+#    define check_add_uint_uint check_add_uint32_uint32
+#    define check_mul_int_int check_mul_int32_int32
+#    define check_mul_uint_uint check_mul_uint32_uint32
 #else
-#	if UNIT_MAX >> 64 == 0
-#		define check_add_int_int check_add_int64_int64
-#		define check_add_uint_uint check_add_uint64_uint64
-#		define check_mul_int_int check_mul_int64_int64
-#		define check_mul_uint_uint check_mul_uint64_uint64
-#	else
-#		error unsupported integer size
-#	endif
+#    if UNIT_MAX >> 64 == 0
+#        define check_add_int_int check_add_int64_int64
+#        define check_add_uint_uint check_add_uint64_uint64
+#        define check_mul_int_int check_mul_int64_int64
+#        define check_mul_uint_uint check_mul_uint64_uint64
+#    else
+#        error unsupported integer size
+#    endif
 #endif
 
 #ifndef BIGINT_REDZONE
@@ -116,6 +116,42 @@ BigInt* BigInt_construct(int value) {
         value2 /= 10;
     }
 
+    return new_big_int;
+}
+
+BigInt* BigInt_from_string(const char* str) {
+    BOOL is_negative = (*str == '-');
+    if( is_negative ){
+        str++;
+    }
+    while( *str == '0' ){ // remove leading zeros
+        str++;
+    }
+    unsigned int num_digits = strlen( str );
+    BigInt* new_big_int = malloc(sizeof(BigInt));
+    if(!new_big_int){
+        return NULL;
+    }
+    new_big_int->is_negative = is_negative;
+    new_big_int->num_allocated_digits = num_digits;
+    new_big_int->digits = malloc_digits(num_digits);
+    if(!new_big_int->digits){
+        free(new_big_int);
+        return NULL;
+    }
+    const char* end = str + num_digits - 1;
+    unsigned char* digits = new_big_int->digits;
+    while( end >= str ){
+        unsigned char digit = *(end--);
+        if(digit < '0' || digit > '9'){
+            BigInt_free(new_big_int);
+            errno = EINVAL;
+            return NULL;
+        }
+        *digits++ = digit - '0';
+    }
+    new_big_int->num_digits = digits - new_big_int->digits;
+    assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
     return new_big_int;
 }
 
@@ -494,6 +530,54 @@ void BigInt_fprint(FILE *dest, const BigInt* big_int) {
     while(digits >= base) {
         fputc('0' + *(digits--), dest);
     }
+}
+
+unsigned int BigInt_strlen(const BigInt* big_int){
+    unsigned int len = big_int->num_digits;
+    if( big_int->is_negative ){
+        len++;
+    }
+    return len;
+}
+
+BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size){
+    const unsigned char* base = big_int->digits;
+    const unsigned char* digits = &base[big_int->num_digits-1];
+    if (big_int->is_negative){
+        if(!buf_size--){
+            errno = ERANGE;
+            return 0;
+        }
+        *buf++ = '-';
+    }
+
+    while( digits >= base ){
+        if(!buf_size--){
+            errno = ERANGE;
+            return 0;
+        }
+        *buf++ = '0' + *(digits--);
+    }
+
+    // write 0 terminator:
+    if(!buf_size--){
+        errno = ERANGE;
+        return 0;
+    }
+    *buf++ = 0;
+
+    return 1;
+}
+
+char* BigInt_to_new_string(const BigInt* big_int){
+    unsigned int buf_size = BigInt_strlen(big_int) + 1;
+    char* buf = malloc(buf_size);
+    if(!buf) {
+        return NULL;
+    }
+    BOOL result = BigInt_to_string(big_int, buf, buf_size);
+    assert(result);
+    return buf;
 }
 
 BOOL BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {

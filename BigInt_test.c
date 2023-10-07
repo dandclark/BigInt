@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h> // strerror
 
 #include "BigInt.h"
@@ -24,6 +25,11 @@ void BigInt_test_basic() {
     BigInt_test_construct(1000000000);
     BigInt_test_construct(1000000001);
     BigInt_test_construct(990000000);
+
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing strings\n");
+    }
+    BigInt_test_strings();
 
     // Ensure that reallocating digits doesn't make us
     // lose data.
@@ -97,6 +103,21 @@ void BigInt_test_construct(int value) {
     BigInt* big_int = BigInt_construct(value);
     int value2;
     assert(BigInt_to_int(big_int, &value2) && value2 == value);
+    BigInt_free(big_int);
+}
+
+void BigInt_test_strings() {
+    // test really big numbers that won't fit in an int:
+    BigInt* big_int = BigInt_from_string("9876543210123456789");
+    assert(big_int);
+    assert(BigInt_multiply_int(big_int, 10));
+    int value;
+    assert(!BigInt_to_int(big_int, &value));
+    assert(errno == ERANGE); // value too big to fit into int
+    char* str = BigInt_to_new_string(big_int);
+    assert(str);
+    assert(!strcmp(str, "98765432101234567890"));
+    free(str);
     BigInt_free(big_int);
 }
 
@@ -212,4 +233,15 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
 
     BigInt_free(big_int_a);
     BigInt_free(big_int_b);
+}
+
+void BigInt_test_print() {
+    BigInt* big_int = BigInt_construct(10000);
+    assert(big_int);
+    assert(BigInt_subtract_int(big_int, 9900));
+
+    printf("num_digits=%d, alloc_digits=%d, should output '100': ", big_int->num_digits, big_int->num_allocated_digits);
+    BigInt_print(big_int);
+    printf("\n");
+    BigInt_free(big_int);
 }

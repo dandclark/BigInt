@@ -107,14 +107,26 @@ void BigInt_test_construct(int value) {
 }
 
 void BigInt_test_strings() {
+    int value;
+
     // test really big numbers that won't fit in an int:
     BigInt* big_int = BigInt_from_string("9876543210123456789");
     assert(big_int);
-    assert(BigInt_multiply_int(big_int, 10));
-    int value;
+    assert(BigInt_multiply_int(big_int, -10));
     assert(!BigInt_to_int(big_int, &value));
     assert(errno == ERANGE); // value too big to fit into int
     char* str = BigInt_to_new_string(big_int);
+    assert(str);
+    assert(!strcmp(str, "-98765432101234567890"));
+    free(str);
+    BigInt_free(big_int);
+
+    big_int = BigInt_from_string("-9876543210123456789");
+    assert(big_int);
+    assert(BigInt_multiply_int(big_int, -10));
+    assert(!BigInt_to_int(big_int, &value));
+    assert(errno == ERANGE); // value too big to fit into int
+    str = BigInt_to_new_string(big_int);
     assert(str);
     assert(!strcmp(str, "98765432101234567890"));
     free(str);

@@ -131,6 +131,24 @@ void BigInt_test_strings() {
     assert(!strcmp(str, "98765432101234567890"));
     free(str);
     BigInt_free(big_int);
+    
+    big_int = BigInt_from_string("0");
+    assert(big_int);
+    assert(BigInt_to_int(big_int, &value));
+    assert(value == 0);
+    BigInt_free(big_int);
+    
+    big_int = BigInt_from_string("-0");
+    assert(big_int);
+    assert(BigInt_to_int(big_int, &value));
+    assert(value == 0);
+    BigInt_free(big_int);
+    
+    big_int = BigInt_from_string("0000");
+    assert(big_int);
+    assert(BigInt_to_int(big_int, &value));
+    assert(value == 0);
+    BigInt_free(big_int);
 }
 
 void BigInt_test_operations(int a, int b) {
@@ -167,7 +185,7 @@ void BigInt_test_operations(int a, int b) {
     }
 }
 
-// Calls the specified BigInt 2-operand function for all 
+// Calls the specified BigInt 2-operand function for all
 // permutations of positive, negative, and order-reversals
 // of the values a and b.
 void BigInt_test_permutations(Generic_function BigInt_operation_to_test,

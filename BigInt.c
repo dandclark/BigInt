@@ -121,10 +121,10 @@ BigInt* BigInt_construct(int value) {
 
 BigInt* BigInt_from_string(const char* str) {
     BOOL is_negative = (*str == '-');
-    if( is_negative ){
+    if(is_negative) {
         str++;
     }
-    while( *str == '0' ){ // remove leading zeros
+    while(*str == '0' && *str != 0) { // remove leading zeros
         str++;
     }
     unsigned int num_digits = strlen( str );

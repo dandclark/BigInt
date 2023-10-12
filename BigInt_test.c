@@ -74,6 +74,8 @@ void BigInt_test_basic() {
     BigInt_test_operations(2546, 2546);
     BigInt_test_operations(1234, 4321);
     //BigInt_test_operations(999999999, 123456789);
+    
+    BigInt_test_signs();
 }
 
 // This is basically a stress-test for multiplication.
@@ -104,6 +106,22 @@ void BigInt_test_construct(int value) {
     int value2;
     assert(BigInt_to_int(big_int, &value2) && value2 == value);
     BigInt_free(big_int);
+}
+
+
+void BigInt_test_signs() {
+    BigInt* a = BigInt_construct( 0 );
+    assert(a);
+    BigInt* b = BigInt_construct( 0 );
+    assert(b);
+    assert(BigInt_subtract(a, b));
+    char* s = BigInt_to_new_string(a);
+    assert(s);
+    printf("%s\n", s);
+    assert(!strcmp(s, "0"));
+    free(s);
+    BigInt_free(a);
+    BigInt_free(b);
 }
 
 void BigInt_test_strings() {

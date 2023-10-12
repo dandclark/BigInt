@@ -311,7 +311,7 @@ BOOL BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     // Figure out the sign.  Need to do this before calculating the digits of
     // the digits result because changing those in big_int will affect the result
     // of the compare.
-    unsigned int result_is_negative = BigInt_compare(big_int, to_subtract) > 0 ? 0 : 1;
+    unsigned int result_is_negative = BigInt_compare(big_int, to_subtract) >= 0 ? 0 : 1;
     
     // Calculate the digits
     if(big_int->is_negative == to_subtract->is_negative) {

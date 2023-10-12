@@ -346,7 +346,7 @@ BOOL BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     if(!BigInt_ensure_digits(big_int, digits_needed)) {
         return 0;
     }
-    
+
     // Determine the larger int.  This will go on "top"
     // of the subtraction.  Sign doesn't matter here since we've already
     // determined the sign of the final result above.
@@ -460,6 +460,11 @@ BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
     }
 
     result->is_negative = big_int->is_negative != multiplier->is_negative;
+
+    // don't leave 0's in highest digit
+    while(result->num_digits > 1 && !result->digits[result->num_digits-1]) {
+        result->num_digits--;
+    }
 
     // Place the result in big_int and clean things up
     BOOL success = BigInt_assign(big_int, result);

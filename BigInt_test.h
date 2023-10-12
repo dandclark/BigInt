@@ -28,6 +28,7 @@ void BigInt_test_basic();
 void BigInt_test_big_multiplication();
 void BigInt_test_construct(int value);
 void BigInt_test_signs();
+void BigInt_test_multiply_optimized();
 void BigInt_test_strings();
 void BigInt_test_operations(int a, int b);
 void BigInt_test_permutations(Generic_function BigInt_operation_to_test,

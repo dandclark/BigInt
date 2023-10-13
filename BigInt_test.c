@@ -208,6 +208,12 @@ void _BigInt_test_division( const char* dividend, const char* divisor, const cha
 		assert(0);
 	}
 	assert(!strcmp(remainder, remainder2));
+	BigInt_free(_dividend);
+	BigInt_free(_divisor);
+	BigInt_free(_quotient);
+	BigInt_free(_remainder);
+	free(quotient2);
+	free(remainder2);
 }
 
 void BigInt_test_division() {

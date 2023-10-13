@@ -36,6 +36,7 @@ void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
 void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
         OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_print();
+void BigInt_test_division();
 
 #endif // BIG_INT_TEST_H
 

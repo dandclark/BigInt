@@ -31,6 +31,11 @@ void BigInt_test_basic() {
     }
     BigInt_test_strings();
 
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing division\n");
+    }
+    BigInt_test_division();
+
     // Ensure that reallocating digits doesn't make us
     // lose data.
     if(BIGINT_TEST_LOGGING > 0) {
@@ -184,6 +189,37 @@ void BigInt_test_strings() {
     assert(BigInt_to_int(big_int, &value));
     assert(value == 0);
     BigInt_free(big_int);
+}
+
+void _BigInt_test_division( const char* dividend, const char* divisor, const char* quotient, const char* remainder ) {
+	BigInt* _dividend = BigInt_from_string(dividend);
+	assert(_dividend);
+	BigInt* _divisor = BigInt_from_string(divisor);
+	assert(_divisor);
+	BigInt* _quotient = BigInt_construct(0);
+	BigInt* _remainder = BigInt_construct(0);
+	assert(BigInt_divide(_dividend, _divisor, _quotient, _remainder));
+	char* quotient2 = BigInt_to_new_string(_quotient);
+	assert(quotient2);
+	char* remainder2 = BigInt_to_new_string(_remainder);
+	assert(remainder2);
+	if(strcmp(quotient, quotient2)) {
+		printf("BigInt_test_division failed: expecting quotient=%s but got %s\n", quotient, quotient2);
+		assert(0);
+	}
+	assert(!strcmp(remainder, remainder2));
+}
+
+void BigInt_test_division() {
+	// basic division:
+	_BigInt_test_division( "1000", "10", "100", "0" );
+	
+	// too big to fit into 32-bit int:
+	_BigInt_test_division( "963096309630", "30", "32103210321", "0" );
+	_BigInt_test_division( "300000000000000000000", "3000000000000000", "100000", "0" );
+	
+	// test remainder:
+	_BigInt_test_division( "10", "3", "3", "1" );
 }
 
 void BigInt_test_operations(int a, int b) {

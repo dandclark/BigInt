@@ -25,7 +25,14 @@ typedef struct BigInt {
 // Returns a pointer to a new BigInt initialized to the specified value.
 // Caller is responsible for freeing the new BigInt with a
 // corresponding call to BigInt_free.
+// returns NULL on memory allocation failure.
 BigInt* BigInt_construct(int value);
+
+// Returns a pointer to a new BigInt initialized from the supplied BigInt.
+// Caller is responsible for freeing the new BigInt with a
+// corresponding call to BigInt_free.
+// returns NULL on memory allocation failure.
+BigInt* BigInt_clone(const BigInt* big_int, unsigned int num_allocated_digits);
 
 // Returns a pointer to a new BigInt initialized from digits in the specified
 // zero-terminated string. Caller is responsible for freeing the new BigInt
@@ -70,6 +77,9 @@ char* BigInt_to_new_string(const BigInt* big_int);
 // Returns -1 if a < b, 0 if a == b, 1 if a > b 
 int BigInt_compare(const BigInt* a, const BigInt* b);
 
+// Returns -1 if a < b, 0 if a == b, 1 if a > b
+int BigInt_compare_int(const BigInt* a, int b);
+
 // Adds the value in addend to big_int.  Places the result in big_int.
 // returns non-zero on success or 0 on failure
 BOOL BigInt_add(BigInt* big_int, const BigInt* addend);
@@ -86,6 +96,16 @@ BOOL BigInt_subtract_int(BigInt* big_int, const int to_subtract);
 // returns non-zero on success or 0 on failure
 BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier);
 BOOL BigInt_multiply_int(BigInt* big_int, const int multiplier);
+
+// Divides dividend by divisor.
+// If only quotient is desired, remainder can be NULL
+// If only remainder is desired, quotient can be NULL
+// if both quotient and remainder are NULL, this is just a fancy way of burning cpu
+// returns non-zero on success or 0 on failure
+BOOL BigInt_divide(
+    BigInt* dividend, BigInt* divisor,
+    BigInt* quotient, BigInt* remainder
+);
 
 // Sets result to the value of big_int as an integer if the
 // value of big_int fits within the size of result's type on the target

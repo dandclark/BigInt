@@ -120,7 +120,7 @@ BigInt* BigInt_construct(int value) {
 }
 
 BigInt* BigInt_clone(const BigInt* big_int, unsigned int num_allocated_digits) {
-    if(num_allocated_digits > big_int->num_digits) {
+    if(num_allocated_digits < big_int->num_digits) {
         num_allocated_digits = big_int->num_digits;
     }
     BigInt* new_big_int = malloc(sizeof(BigInt));

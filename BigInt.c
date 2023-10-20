@@ -119,6 +119,27 @@ BigInt* BigInt_construct(int value) {
     return new_big_int;
 }
 
+BigInt* BigInt_clone(const BigInt* big_int, unsigned int num_allocated_digits) {
+    if(num_allocated_digits < big_int->num_digits) {
+        num_allocated_digits = big_int->num_digits;
+    }
+    BigInt* new_big_int = malloc(sizeof(BigInt));
+    if(!new_big_int) {
+        return NULL;
+    }
+    new_big_int->digits = malloc_digits(num_allocated_digits);
+    if(!new_big_int->digits) {
+        free(new_big_int);
+        return NULL;
+    }
+    new_big_int->num_allocated_digits = num_allocated_digits;
+    new_big_int->is_negative = big_int->is_negative;
+    new_big_int->num_digits = big_int->num_digits;
+    memmove(new_big_int->digits, big_int->digits, big_int->num_digits * sizeof(unsigned char));
+    assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
+    return new_big_int;
+}
+
 BigInt* BigInt_from_string(const char* str) {
     BOOL is_negative = (*str == '-');
     if(is_negative) {
@@ -168,12 +189,7 @@ BOOL BigInt_assign(BigInt* target, const BigInt* source)
         return 0;
     }
 
-    unsigned int count = source->num_digits;
-    unsigned char* tgt = target->digits;
-    const unsigned char* src = source->digits;
-    while(count--) {
-        *tgt++ = *src++;
-    }
+    memmove(target->digits, source->digits, source->num_digits * sizeof(unsigned char));
 
     target->is_negative = source->is_negative;
     target->num_digits = source->num_digits;
@@ -221,6 +237,18 @@ int BigInt_compare(const BigInt* a, const BigInt* b) {
     }
 
     return a->is_negative ? BigInt_compare_digits(b, a) : BigInt_compare_digits(a, b);
+}
+
+int BigInt_compare_int(const BigInt* a, int b) {
+    int aa;
+    if(!BigInt_to_int(a, &aa)) {
+        // a is too big to fit into an integer:
+        return a->is_negative ? -1 : 1;
+    }
+    if(aa == b) {
+        return 0;
+    }
+    return aa < b ? -1 : 1;
 }
 
 int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
@@ -480,6 +508,132 @@ BOOL BigInt_multiply_int(BigInt* big_int, const int multiplier) {
     }
     BOOL result = BigInt_multiply(big_int, big_int_multiplier);
     BigInt_free(big_int_multiplier);
+    return result;
+}
+
+BOOL BigInt_divide(
+    BigInt* dividend, BigInt* divisor,
+    BigInt* quotient, BigInt* remainder)
+{
+    int result = 0; // default to failure
+    BigInt* div2 = NULL;
+    BigInt* div3 = NULL;
+    BigInt* div4 = NULL;
+    BigInt* div5 = NULL;
+    BigInt* div6 = NULL;
+    BigInt* div7 = NULL;
+    BigInt* div8 = NULL;
+    BigInt* div9 = NULL;
+    BigInt* ten = NULL;
+    BigInt* _quotient = NULL;
+    BigInt* _remainder = NULL;
+
+    if(!BigInt_compare_int(divisor, 0)) {
+        errno = ERANGE; // even BigInt can't represent infinity
+        goto cleanup;
+    }
+    div2 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div2 || !BigInt_multiply_int(div2, 2)) {
+        goto cleanup;
+    }
+    div3 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div3 || !BigInt_multiply_int(div3, 3)) {
+        goto cleanup;
+    }
+    div4 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div4 || !BigInt_multiply_int(div4, 4)) {
+        goto cleanup;
+    }
+    div5 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div5 || !BigInt_multiply_int(div5, 5)) {
+        goto cleanup;
+    }
+    div6 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div6 || !BigInt_multiply_int(div6, 6)) {
+        goto cleanup;
+    }
+    div7 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div7 || !BigInt_multiply_int(div7, 7)) {
+        goto cleanup;
+    }
+    div8 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div8 || !BigInt_multiply_int(div8, 8)) {
+        goto cleanup;
+    }
+    div9 = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!div9 || !BigInt_multiply_int(div9, 9)) {
+        goto cleanup;
+    }
+
+    ten = BigInt_construct( 10 );
+    _quotient = BigInt_construct( 0 );
+    _remainder = BigInt_construct( 0 );
+    if(!ten || !_quotient || !_remainder) {
+        goto cleanup;
+    }
+
+    BigInt* divs[10];
+    // NOTE: divs[0] intentionally unused so that new_digit == index below
+    divs[1] = divisor;
+    divs[2] = div2;
+    divs[3] = div3;
+    divs[4] = div4;
+    divs[5] = div5;
+    divs[6] = div6;
+    divs[7] = div7;
+    divs[8] = div8;
+    divs[9] = div9;
+
+    const unsigned char* base = dividend->digits;
+    const unsigned char* digits = &base[dividend->num_digits-1];
+
+    while(digits >= base) {
+        if(!BigInt_multiply(_remainder, ten)) {
+            goto cleanup;
+        }
+        if(!BigInt_add_int(_remainder, *digits)) {
+            goto cleanup;
+        }
+        int new_digit = 0;
+        for(int i = 9; i >= 1; i--) {
+            if(BigInt_compare(_remainder, divs[i]) >= 0) {
+                if(!BigInt_subtract(_remainder, divs[i])) {
+                    goto cleanup;
+                }
+                new_digit = i;
+                break;
+            }
+        }
+        if(!BigInt_multiply(_quotient, ten) || !BigInt_add_int(_quotient, new_digit)) {
+            goto cleanup;
+        }
+        digits--;
+    }
+    
+    if(quotient) {
+        if(!BigInt_assign(quotient, _quotient)) {
+            goto cleanup;
+        }
+    }
+    if(remainder) {
+        if(!BigInt_assign(remainder, _remainder)) {
+            goto cleanup;
+        }
+    }
+    
+    result = 1;
+cleanup:
+    BigInt_free(div2);
+    BigInt_free(div3);
+    BigInt_free(div4);
+    BigInt_free(div5);
+    BigInt_free(div6);
+    BigInt_free(div7);
+    BigInt_free(div8);
+    BigInt_free(div9);
+    BigInt_free(ten);
+    BigInt_free(_remainder);
+    BigInt_free(_quotient);
     return result;
 }
 

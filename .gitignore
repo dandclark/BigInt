@@ -21,5 +21,10 @@
 *.i*86
 *.x86_64
 *.hex
+demo
+test
+
+# Debug symbol bundles (macOS)
+*.dSYM/
 
 *.swp

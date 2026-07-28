@@ -20,6 +20,7 @@ extern const char* OPERATION_NAMES[];
 void BigInt_test_basic();
 void BigInt_test_big_multiplication();
 void BigInt_test_construct(int value);
+void BigInt_test_assign_int();
 void BigInt_test_signs();
 void BigInt_test_multiply_optimized();
 void BigInt_test_strings();

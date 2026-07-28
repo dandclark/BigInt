@@ -198,12 +198,12 @@ BOOL BigInt_assign(BigInt* target, const BigInt* source)
 
 BOOL BigInt_assign_int(BigInt* target, const int source) {
     unsigned int value;
-    if(value < 0) {
+    if(source < 0) {
         target->is_negative = 1;
-        value = -source;
+        value = -(unsigned int)source;
     } else {
         target->is_negative = 0;
-        value = source;
+        value = (unsigned int)source;
     }
 
     target->num_digits = floor(log10(value)) + 1;

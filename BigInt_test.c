@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> // strerror
@@ -25,6 +26,11 @@ void BigInt_test_basic() {
     BigInt_test_construct(1000000000);
     BigInt_test_construct(1000000001);
     BigInt_test_construct(990000000);
+
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing assign_int\n");
+    }
+    BigInt_test_assign_int();
 
     if(BIGINT_TEST_LOGGING > 0) {
         printf("Testing strings\n");
@@ -112,6 +118,40 @@ void BigInt_test_construct(int value) {
     int value2;
     assert(BigInt_to_int(big_int, &value2) && value2 == value);
     BigInt_free(big_int);
+}
+
+void BigInt_test_assign_int() {
+    const int values[] = { 0, 1, -1, 7, -7, -20, 42, -42, 100, -100,
+                           999999999, -999999999, INT_MAX, INT_MIN };
+
+    for(unsigned int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+        int v = values[i];
+
+        // Start from an arbitrary non-zero value to make sure assign_int
+        // overwrites both the digits and the sign.
+        BigInt* b = BigInt_construct(-777);
+        assert(b);
+        assert(BigInt_assign_int(b, v));
+
+        // The sign flag must match the sign of the source.
+        assert(b->is_negative == (v < 0));
+
+        // The value must round-trip through its decimal string.  (A string
+        // comparison also covers INT_MIN, which BigInt_to_int cannot yet
+        // represent.)
+        char expected[16];
+        snprintf(expected, sizeof(expected), "%d", v);
+        char* actual = BigInt_to_new_string(b);
+        assert(actual);
+        if(strcmp(expected, actual)) {
+            printf("BigInt_assign_int(%d) produced %s, expected %s\n",
+                    v, actual, expected);
+            assert(0);
+        }
+
+        free(actual);
+        BigInt_free(b);
+    }
 }
 
 

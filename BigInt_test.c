@@ -233,53 +233,26 @@ void BigInt_test_operations(int a, int b) {
     OPERATION_TYPE operation_type;
 
     for(operation_type = 0; operation_type < OPERATION_TYPE_COUNT; operation_type++) {
-        switch(operation_type) {
-            case ADD:
-                BigInt_test_permutations((Generic_function)BigInt_add, operation_type, a, b); 
-                break;
-            case ADD_INT:
-                BigInt_test_permutations((Generic_function)BigInt_add_int, operation_type, a, b); 
-                break;
-            case SUBTRACT:
-                BigInt_test_permutations((Generic_function)BigInt_subtract, operation_type, a, b); 
-                break;
-            case SUBTRACT_INT:
-                BigInt_test_permutations((Generic_function)BigInt_subtract_int, operation_type, a, b); 
-                break;
-            case MULTIPLY:
-                BigInt_test_permutations((Generic_function)BigInt_multiply, operation_type, a, b); 
-                break;
-            case MULTIPLY_INT:
-                BigInt_test_permutations((Generic_function)BigInt_multiply_int, operation_type, a, b); 
-                break;
-            case COMPARE:
-                BigInt_test_permutations((Generic_function)BigInt_compare, operation_type, a, b); 
-                break;
-            default:
-                printf("Unsupported operation: %i\n", operation_type);
-                assert(0);
-        }
+        BigInt_test_permutations(operation_type, a, b);
     }
 }
 
 // Calls the specified BigInt 2-operand function for all
 // permutations of positive, negative, and order-reversals
 // of the values a and b.
-void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b) {
+void BigInt_test_permutations(OPERATION_TYPE operation_type, int a, int b) {
 
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, a, b);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, -a, b);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, a, -b);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, -a, -b);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, b, a);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, -b, a);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, b, -a);
-    BigInt_test_single_operation(BigInt_operation_to_test, operation_type, -b, -a);
+    BigInt_test_single_operation(operation_type, a, b);
+    BigInt_test_single_operation(operation_type, -a, b);
+    BigInt_test_single_operation(operation_type, a, -b);
+    BigInt_test_single_operation(operation_type, -a, -b);
+    BigInt_test_single_operation(operation_type, b, a);
+    BigInt_test_single_operation(operation_type, -b, a);
+    BigInt_test_single_operation(operation_type, b, -a);
+    BigInt_test_single_operation(operation_type, -b, -a);
 }
 
-void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b) {
+void BigInt_test_single_operation(OPERATION_TYPE operation_type, int a, int b) {
     
     if(BIGINT_TEST_LOGGING > 1) {
         printf("Testing %s for %i, %i\n", OPERATION_NAMES[operation_type], a, b);
@@ -294,19 +267,31 @@ void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
 
     switch(operation_type) {
         case ADD:
+            assert(BigInt_add(big_int_a, big_int_b));
+            assert(BigInt_to_int(big_int_a, &result));
+            break;
         case SUBTRACT:
+            assert(BigInt_subtract(big_int_a, big_int_b));
+            assert(BigInt_to_int(big_int_a, &result));
+            break;
         case MULTIPLY:
-            assert(((BOOL(*)(BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b));
+            assert(BigInt_multiply(big_int_a, big_int_b));
             assert(BigInt_to_int(big_int_a, &result));
             break;
         case ADD_INT:
+            assert(BigInt_add_int(big_int_a, b));
+            assert(BigInt_to_int(big_int_a, &result));
+            break;
         case SUBTRACT_INT:
+            assert(BigInt_subtract_int(big_int_a, b));
+            assert(BigInt_to_int(big_int_a, &result));
+            break;
         case MULTIPLY_INT:
-            assert(((BOOL(*)(BigInt*, const int))(*BigInt_operation_to_test))(big_int_a, b));
+            assert(BigInt_multiply_int(big_int_a, b));
             assert(BigInt_to_int(big_int_a, &result));
             break;
         case COMPARE:
-            result = ((int(*)(const BigInt*, const BigInt*))(*BigInt_operation_to_test))(big_int_a, big_int_b);
+            result = BigInt_compare(big_int_a, big_int_b);
             break;
         default:
             printf("Unsupported operation\n");

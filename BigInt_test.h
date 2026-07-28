@@ -17,13 +17,6 @@ typedef enum { ADD, ADD_INT, SUBTRACT, SUBTRACT_INT, MULTIPLY, MULTIPLY_INT,
         COMPARE, OPERATION_TYPE_COUNT} OPERATION_TYPE;
 extern const char* OPERATION_NAMES[];
 
-// Used to cast various BigInt functions to a generic type that can
-// be passed through the test helpers BigInt_test_permutations and
-// BigInt_test_single_operation.  The function pointers are cast
-// back to the correct type in BigInt_test_single_operation using
-// the specified OPERATION_TYPE.
-typedef void*(*Generic_function)(void*);
-
 void BigInt_test_basic();
 void BigInt_test_big_multiplication();
 void BigInt_test_construct(int value);
@@ -31,10 +24,8 @@ void BigInt_test_signs();
 void BigInt_test_multiply_optimized();
 void BigInt_test_strings();
 void BigInt_test_operations(int a, int b);
-void BigInt_test_permutations(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b); 
-void BigInt_test_single_operation(Generic_function BigInt_operation_to_test,
-        OPERATION_TYPE operation_type, int a, int b);
+void BigInt_test_permutations(OPERATION_TYPE operation_type, int a, int b);
+void BigInt_test_single_operation(OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_print();
 void BigInt_test_division();
 

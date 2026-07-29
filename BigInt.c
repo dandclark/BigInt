@@ -77,7 +77,7 @@ void free_digits(unsigned char* digits, unsigned int num_digits) {
 #else
 #define malloc_digits(num_digits) malloc((num_digits) * sizeof(unsigned char))
 #define okay_digits(digits,num_digits) 1
-#define free_digits(digits,num_digits) free(digits)
+#define free_digits(digits,num_digits) ((void)num_digits, free(digits))
 #endif
 
 BigInt* BigInt_construct(int value) {
@@ -318,7 +318,7 @@ BOOL BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
         return 0;
     }
 
-    int i;
+    unsigned int i;
     int carry = 0;
     for(i = 0; i < addend->num_digits || carry > 0; ++i) { // TODO FIXME: refactor to protect from integer overflow
         // Append another digit if necessary
@@ -396,7 +396,7 @@ BOOL BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
     }
 
     // Actually carry out the subtraction.
-    int i;
+    unsigned int i;
     int carry = 0;
     big_int->num_digits = 1;
 
@@ -453,7 +453,7 @@ BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
         return 0;
     }
 
-    int i, j;
+    unsigned int i, j;
     int carry = 0;
     for(i = 0; i < multiplier->num_digits; ++i) {
 

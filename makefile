@@ -1,6 +1,5 @@
 CC ?= gcc
-# TODO add -Wall -Wextra to CFLAGS
-CFLAGS ?= -g
+CFLAGS ?= -g -Wall -Wextra
 LDFLAGS ?=
 LDLIBS ?= -lm
 

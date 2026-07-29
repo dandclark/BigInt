@@ -153,6 +153,24 @@ BigInt* BigInt_from_string(const char* str) {
     if(!new_big_int){
         return NULL;
     }
+
+    // If stripping leading zeros consumed every character (e.g. "0", "-0",
+    // "000", or ""), there are no digits left.  Represent the value as a single
+    // zero digit and normalize the sign so we never produce a negative zero.
+    if(num_digits == 0) {
+        new_big_int->is_negative = 0;
+        new_big_int->num_allocated_digits = 1;
+        new_big_int->digits = malloc_digits(1);
+        if(!new_big_int->digits){
+            free(new_big_int);
+            return NULL;
+        }
+        new_big_int->digits[0] = 0;
+        new_big_int->num_digits = 1;
+        assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
+        return new_big_int;
+    }
+
     new_big_int->is_negative = is_negative;
     new_big_int->num_allocated_digits = num_digits;
     new_big_int->digits = malloc_digits(num_digits);

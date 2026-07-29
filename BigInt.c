@@ -206,16 +206,21 @@ BOOL BigInt_assign_int(BigInt* target, const int source) {
         value = (unsigned int)source;
     }
 
-    target->num_digits = floor(log10(value)) + 1;
+    unsigned int num_digits = floor(log10(value)) + 1;
 
     // Special case for 0
-    if(target->num_digits == 0) {
-        target->num_digits = 1;
+    if(num_digits == 0) {
+        num_digits = 1;
     }
 
-    if(!BigInt_ensure_digits(target, target->num_digits)) {
+    // Grow the buffer before updating target->num_digits.
+    // BigInt_ensure_digits preserves the currently-valid digits by
+    // copying target->num_digits bytes, so num_digits must still
+    // describe the old contents at that point.
+    if(!BigInt_ensure_digits(target, num_digits)) {
         return 0;
     }
+    target->num_digits = num_digits;
 
     unsigned int count = target->num_digits;
     unsigned char* digits = target->digits;

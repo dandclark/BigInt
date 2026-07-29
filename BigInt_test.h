@@ -29,6 +29,7 @@ void BigInt_test_permutations(OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_single_operation(OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_print();
 void BigInt_test_division();
+void BigInt_test_clone();
 
 #endif // BIG_INT_TEST_H
 

@@ -42,6 +42,11 @@ void BigInt_test_basic() {
     }
     BigInt_test_division();
 
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing clone\n");
+    }
+    BigInt_test_clone();
+
     // Ensure that reallocating digits doesn't make us
     // lose data.
     if(BIGINT_TEST_LOGGING > 0) {
@@ -266,6 +271,76 @@ void BigInt_test_division() {
 	
 	// test remainder:
 	_BigInt_test_division( "10", "3", "3", "1" );
+}
+
+// Verifies BigInt_clone(original, requested) produces an independent, correct
+// copy whose allocation covers all of its digits. `expected` is the decimal
+// string the clone should stringify to.
+static void _BigInt_check_clone(const BigInt* original, const char* expected,
+        unsigned int requested) {
+    BigInt* clone = BigInt_clone(original, requested);
+    assert(clone);
+
+    // Allocation must always cover num_digits, and a larger request
+    // must be honored rather than clamped down.
+    unsigned int expected_alloc =
+        requested < original->num_digits ? original->num_digits : requested;
+    assert(clone->num_allocated_digits >= clone->num_digits);
+    assert(clone->num_allocated_digits == expected_alloc);
+
+    // The clone must match the original's value, sign, and length.
+    assert(clone->num_digits == original->num_digits);
+    assert(clone->is_negative == original->is_negative);
+    assert(BigInt_compare(clone, original) == 0);
+
+    char* clone_str = BigInt_to_new_string(clone);
+    assert(clone_str && !strcmp(clone_str, expected));
+
+    // The clone must own a separate buffer: mutating the clone must leave the
+    // original untouched.
+    assert(clone->digits != original->digits);
+    assert(BigInt_add_int(clone, 1));
+    char* mutated = BigInt_to_new_string(clone);
+    assert(mutated && strcmp(mutated, expected) != 0);
+    char* original_str = BigInt_to_new_string(original);
+    assert(original_str && !strcmp(original_str, expected));
+
+    free(clone_str);
+    free(mutated);
+    free(original_str);
+    BigInt_free(clone);
+}
+
+// Convenience wrapper that builds the source from a decimal string.
+static void _BigInt_check_clone_str(const char* value, unsigned int requested) {
+    BigInt* original = BigInt_from_string(value);
+    assert(original);
+    _BigInt_check_clone(original, value, requested);
+    BigInt_free(original);
+}
+
+void BigInt_test_clone() {
+    // Under-allocation: request fewer digits than the value has.  The clone must
+    // still allocate room for every digit it copies.
+    _BigInt_check_clone_str("123456789", 2);
+    _BigInt_check_clone_str("123456789", 0);
+
+    // Exact and over-allocation (a larger request must be preserved).
+    _BigInt_check_clone_str("123456789", 9);
+    _BigInt_check_clone_str("123456789", 20);
+
+    // Negative values and single digits.
+    _BigInt_check_clone_str("-123456789", 3);
+    _BigInt_check_clone_str("7", 0);
+    _BigInt_check_clone_str("-7", 5);
+
+    // Zero.  Built via BigInt_construct(0) because BigInt_from_string("0")
+    // currently yields a malformed zero (num_digits == 0, bugs.txt P1.2).
+    BigInt* zero = BigInt_construct(0);
+    assert(zero);
+    _BigInt_check_clone(zero, "0", 0);
+    _BigInt_check_clone(zero, "0", 10);
+    BigInt_free(zero);
 }
 
 void BigInt_test_operations(int a, int b) {

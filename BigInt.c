@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <math.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -80,6 +79,19 @@ void free_digits(unsigned char* digits, unsigned int num_digits) {
 #define free_digits(digits,num_digits) ((void)num_digits, free(digits))
 #endif
 
+// Number of decimal digits needed to represent `value`, at least 1 (so zero has
+// one digit).  Uses integer arithmetic to avoid the undefined behavior and
+// rounding error of floor(log10()) -- in particular log10(0) == -inf, whose
+// conversion to an unsigned int is undefined.
+static unsigned int num_decimal_digits(unsigned int value) {
+    unsigned int digits = 1;
+    while(value >= 10) {
+        value /= 10;
+        digits++;
+    }
+    return digits;
+}
+
 BigInt* BigInt_construct(int value) {
 
     BigInt* new_big_int = malloc(sizeof(BigInt));
@@ -89,18 +101,13 @@ BigInt* BigInt_construct(int value) {
     unsigned int value2;
     if(value < 0) {
         new_big_int->is_negative = 1;
-        value2 = -value;
+        value2 = -(unsigned int)value;
     } else {
         new_big_int->is_negative = 0;
-        value2 = value;
+        value2 = (unsigned int)value;
     }
 
-    new_big_int->num_digits = floor(log10(value2)) + 1;
-
-    // Special case for 0
-    if(new_big_int->num_digits == 0) {
-        new_big_int->num_digits = 1;
-    }
+    new_big_int->num_digits = num_decimal_digits(value2);
 
     new_big_int->num_allocated_digits = new_big_int->num_digits;
     new_big_int->digits = malloc_digits(new_big_int->num_allocated_digits);
@@ -224,12 +231,7 @@ BOOL BigInt_assign_int(BigInt* target, const int source) {
         value = (unsigned int)source;
     }
 
-    unsigned int num_digits = floor(log10(value)) + 1;
-
-    // Special case for 0
-    if(num_digits == 0) {
-        num_digits = 1;
-    }
+    unsigned int num_digits = num_decimal_digits(value);
 
     // Grow the buffer before updating target->num_digits.
     // BigInt_ensure_digits preserves the currently-valid digits by

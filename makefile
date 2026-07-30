@@ -1,7 +1,7 @@
 CC ?= gcc
 CFLAGS ?= -g -Wall -Wextra
 LDFLAGS ?=
-LDLIBS ?= -lm
+LDLIBS ?=
 
 .PHONY: all check clean asan-test ubsan-test sanitize-test
 

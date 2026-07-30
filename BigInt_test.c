@@ -47,6 +47,16 @@ void BigInt_test_basic() {
     }
     BigInt_test_clone();
 
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing compare\n");
+    }
+    BigInt_test_compare();
+
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing negative zero\n");
+    }
+    BigInt_test_negative_zero();
+
     // Ensure that reallocating digits doesn't make us
     // lose data.
     if(BIGINT_TEST_LOGGING > 0) {
@@ -357,6 +367,109 @@ void BigInt_test_clone() {
     // Zero.
     _BigInt_check_clone("0", 0);
     _BigInt_check_clone("0", 10);
+}
+
+// Verifies BigInt_compare(a, b) == expected (-1/0/1) for values built from the
+// given decimal strings, and checks antisymmetry and reflexivity.
+static void _BigInt_check_compare(const char* a_str, const char* b_str, int expected) {
+    BigInt* a = BigInt_from_string(a_str);
+    BigInt* b = BigInt_from_string(b_str);
+    assert(a && b);
+
+    assert(BigInt_compare(a, b) == expected);
+    assert(BigInt_compare(b, a) == -expected); // antisymmetry
+    assert(BigInt_compare(a, a) == 0);         // reflexivity
+    assert(BigInt_compare(b, b) == 0);
+
+    BigInt_free(a);
+    BigInt_free(b);
+}
+
+void BigInt_test_compare() {
+    // Equal values, various signs and magnitudes.
+    _BigInt_check_compare("0", "0", 0);
+    _BigInt_check_compare("5", "5", 0);
+    _BigInt_check_compare("-5", "-5", 0);
+    _BigInt_check_compare("123456789", "123456789", 0);
+
+    // Same sign, differing magnitude.
+    _BigInt_check_compare("5", "6", -1);
+    _BigInt_check_compare("100", "99", 1);    // more digits is greater
+    _BigInt_check_compare("-5", "-6", 1);     // -5 > -6
+    _BigInt_check_compare("-100", "-99", -1); // -100 < -99
+
+    // Different signs.
+    _BigInt_check_compare("1", "-1", 1);
+    _BigInt_check_compare("-1", "1", -1);
+    _BigInt_check_compare("1", "0", 1);
+    _BigInt_check_compare("-1", "0", -1);
+    _BigInt_check_compare("0", "1", -1);
+    _BigInt_check_compare("0", "-1", 1);
+
+    // Values that do not fit in an int, to exercise real BigInt comparison
+    // rather than something an int round-trip could shortcut.
+    _BigInt_check_compare("98765432109876543210", "98765432109876543211", -1);
+    _BigInt_check_compare("100000000000000000000", "99999999999999999999", 1);
+    _BigInt_check_compare("-98765432109876543210", "98765432109876543210", -1);
+
+    // Negative zero must compare equal to positive zero.
+    // A negative zero cannot be produced via from_string
+    // (it normalizes -0 to +0),
+    // so build one directly by flagging a zero as negative.
+    BigInt* neg_zero = BigInt_construct(0);
+    assert(neg_zero);
+    neg_zero->is_negative = 1;
+    BigInt* pos_zero = BigInt_construct(0);
+    assert(pos_zero);
+
+    assert(BigInt_compare(neg_zero, pos_zero) == 0);
+    assert(BigInt_compare(pos_zero, neg_zero) == 0);
+    assert(BigInt_compare(neg_zero, neg_zero) == 0);
+
+    // A negative zero must still order correctly against non-zero values.
+    BigInt* five = BigInt_construct(5);
+    BigInt* neg_five = BigInt_construct(-5);
+    assert(five && neg_five);
+    assert(BigInt_compare(neg_zero, five) == -1);     // 0 < 5
+    assert(BigInt_compare(neg_zero, neg_five) == 1);  // 0 > -5
+
+    BigInt_free(neg_zero);
+    BigInt_free(pos_zero);
+    BigInt_free(five);
+    BigInt_free(neg_five);
+}
+
+// Arithmetic whose result is zero must produce a canonical, non-negative zero
+// (stringifies to "0", never "-0").
+void BigInt_test_negative_zero() {
+    struct { int a; int b; char op; } cases[] = {
+        {-5, 0, '*'},   // negative times zero
+        {0, -123, '*'}, // zero times negative
+        {5, -5, '+'},   // opposite signs summing to zero
+        {-5, 5, '+'},
+        {5, 5, '-'},    // equal values subtracting to zero
+        {-5, -5, '-'},
+    };
+
+    for(unsigned int i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        BigInt* x = BigInt_construct(cases[i].a);
+        BigInt* y = BigInt_construct(cases[i].b);
+        assert(x && y);
+
+        switch(cases[i].op) {
+            case '*': assert(BigInt_multiply(x, y)); break;
+            case '+': assert(BigInt_add(x, y)); break;
+            case '-': assert(BigInt_subtract(x, y)); break;
+        }
+
+        assert(!x->is_negative);
+        char* s = BigInt_to_new_string(x);
+        assert(s && !strcmp(s, "0"));
+
+        free(s);
+        BigInt_free(x);
+        BigInt_free(y);
+    }
 }
 
 void BigInt_test_operations(int a, int b) {

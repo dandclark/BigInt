@@ -255,9 +255,30 @@ BOOL BigInt_assign_int(BigInt* target, const int source) {
     return 1;
 }
 
+// Returns nonzero if big_int represents zero (all digits are zero), regardless
+// of the is_negative flag.
+static BOOL BigInt_is_zero(const BigInt* big_int) {
+    for(unsigned int i = 0; i < big_int->num_digits; i++) {
+        if(big_int->digits[i] != 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// Normalizes zero to be non-negative: a zero result must never be flagged
+// negative, or it would print as "-0".
+static void BigInt_normalize_zero(BigInt* big_int) {
+    if(big_int->is_negative && BigInt_is_zero(big_int)) {
+        big_int->is_negative = 0;
+    }
+}
+
 int BigInt_compare(const BigInt* a, const BigInt* b) {
-    // Quick return if one is negative and the other isn't
-    if(a->num_digits > 0 || a->digits[0] > 0 || b->num_digits > 0 || b->digits[0] > 0) {
+    // If the two numbers have differing signs the positive one is greater, but
+    // only when at least one of them is actually non-zero, so that a negative
+    // zero compares equal to a positive zero rather than less than it.
+    if(!BigInt_is_zero(a) || !BigInt_is_zero(b)) {
         if (a->is_negative && !b->is_negative) {
             return -1;
         } else if (!a->is_negative && b->is_negative) {
@@ -328,6 +349,7 @@ BOOL BigInt_add(BigInt* big_int, const BigInt* addend) {
         }
         big_int->is_negative = result_is_negative;
     }
+    BigInt_normalize_zero(big_int);
     return 1;
 }
 
@@ -383,6 +405,7 @@ BOOL BigInt_subtract(BigInt* big_int, const BigInt* to_subtract) {
     
     // Figure out the sign
     big_int->is_negative = result_is_negative;
+    BigInt_normalize_zero(big_int);
     return 1;
 }
 
@@ -522,6 +545,8 @@ BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
     while(result->num_digits > 1 && !result->digits[result->num_digits-1]) {
         result->num_digits--;
     }
+
+    BigInt_normalize_zero(result);
 
     // Place the result in big_int and clean things up
     BOOL success = BigInt_assign(big_int, result);

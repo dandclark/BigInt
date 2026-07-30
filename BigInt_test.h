@@ -25,6 +25,8 @@ void BigInt_test_signs();
 void BigInt_test_multiply_optimized();
 void BigInt_test_strings();
 void BigInt_test_operations(int a, int b);
+void BigInt_test_compare();
+void BigInt_test_negative_zero();
 void BigInt_test_permutations(OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_single_operation(OPERATION_TYPE operation_type, int a, int b);
 void BigInt_test_print();

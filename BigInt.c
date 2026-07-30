@@ -45,6 +45,10 @@ unsigned char* malloc_digits(unsigned int num_digits) {
         return NULL;
     }
     unsigned char* p = malloc(bytes);
+    if(!p) {
+        errno = ENOMEM;
+        return NULL;
+    }
     memset(p, 0x42, bytes);
     return p + BIGINT_REDZONE;
 }

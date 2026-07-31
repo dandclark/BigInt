@@ -578,6 +578,7 @@ BOOL BigInt_divide(
     BigInt* div7 = NULL;
     BigInt* div8 = NULL;
     BigInt* div9 = NULL;
+    BigInt* abs_divisor = NULL;
     BigInt* ten = NULL;
     BigInt* _quotient = NULL;
     BigInt* _remainder = NULL;
@@ -586,35 +587,44 @@ BOOL BigInt_divide(
         errno = ERANGE; // even BigInt can't represent infinity
         goto cleanup;
     }
-    div2 = BigInt_clone(divisor, divisor->num_digits + 1);
+
+    // The long division works just on magnitudes. We'll apply
+    // the signs at the end.
+    abs_divisor = BigInt_clone(divisor, divisor->num_digits + 1);
+    if(!abs_divisor) {
+        goto cleanup;
+    }
+    abs_divisor->is_negative = 0;
+
+    div2 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div2 || !BigInt_multiply_int(div2, 2)) {
         goto cleanup;
     }
-    div3 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div3 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div3 || !BigInt_multiply_int(div3, 3)) {
         goto cleanup;
     }
-    div4 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div4 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div4 || !BigInt_multiply_int(div4, 4)) {
         goto cleanup;
     }
-    div5 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div5 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div5 || !BigInt_multiply_int(div5, 5)) {
         goto cleanup;
     }
-    div6 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div6 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div6 || !BigInt_multiply_int(div6, 6)) {
         goto cleanup;
     }
-    div7 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div7 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div7 || !BigInt_multiply_int(div7, 7)) {
         goto cleanup;
     }
-    div8 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div8 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div8 || !BigInt_multiply_int(div8, 8)) {
         goto cleanup;
     }
-    div9 = BigInt_clone(divisor, divisor->num_digits + 1);
+    div9 = BigInt_clone(abs_divisor, abs_divisor->num_digits + 1);
     if(!div9 || !BigInt_multiply_int(div9, 9)) {
         goto cleanup;
     }
@@ -628,7 +638,7 @@ BOOL BigInt_divide(
 
     BigInt* divs[10];
     // NOTE: divs[0] intentionally unused so that new_digit == index below
-    divs[1] = divisor;
+    divs[1] = abs_divisor;
     divs[2] = div2;
     divs[3] = div3;
     divs[4] = div4;
@@ -663,7 +673,14 @@ BOOL BigInt_divide(
         }
         digits--;
     }
-    
+
+    // Apply the signs to the magnitude results,
+    // normalizing a zero result to be non-negative.
+    _quotient->is_negative = dividend->is_negative != divisor->is_negative;
+    _remainder->is_negative = dividend->is_negative;
+    BigInt_normalize_zero(_quotient);
+    BigInt_normalize_zero(_remainder);
+
     if(quotient) {
         if(!BigInt_assign(quotient, _quotient)) {
             goto cleanup;
@@ -685,6 +702,7 @@ cleanup:
     BigInt_free(div7);
     BigInt_free(div8);
     BigInt_free(div9);
+    BigInt_free(abs_divisor);
     BigInt_free(ten);
     BigInt_free(_remainder);
     BigInt_free(_quotient);

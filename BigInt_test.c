@@ -297,15 +297,38 @@ void _BigInt_test_division( const char* dividend, const char* divisor, const cha
 }
 
 void BigInt_test_division() {
-	// basic division:
+	// Basic division:
 	_BigInt_test_division( "1000", "10", "100", "0" );
 	
-	// too big to fit into 32-bit int:
+	// Too big to fit into 32-bit int:
 	_BigInt_test_division( "963096309630", "30", "32103210321", "0" );
 	_BigInt_test_division( "300000000000000000000", "3000000000000000", "100000", "0" );
 	
-	// test remainder:
+	// Test remainder:
 	_BigInt_test_division( "10", "3", "3", "1" );
+
+	// For negative operands, the quotient's sign is the XOR of the operand
+    // signs and the remainder takes the dividend's sign.
+	_BigInt_test_division( "-10", "3", "-3", "-1" );
+	_BigInt_test_division( "10", "-3", "-3", "1" );
+	_BigInt_test_division( "-10", "-3", "3", "-1" );
+
+	// Exact division with negatives: a zero remainder must be non-negative.
+	_BigInt_test_division( "-1000", "10", "-100", "0" );
+	_BigInt_test_division( "1000", "-10", "-100", "0" );
+	_BigInt_test_division( "-1000", "-10", "100", "0" );
+
+	// Zero dividend divided by a negative divisor stays a clean zero.
+	_BigInt_test_division( "0", "-7", "0", "0" );
+
+	// |dividend| < |divisor|: quotient is 0, remainder keeps the dividend's sign.
+	_BigInt_test_division( "-3", "10", "0", "-3" );
+	_BigInt_test_division( "3", "-10", "0", "3" );
+
+	// Negative operands too big for a 32-bit int:
+	_BigInt_test_division( "-963096309630", "30", "-32103210321", "0" );
+	_BigInt_test_division( "963096309630", "-30", "-32103210321", "0" );
+	_BigInt_test_division( "-300000000000000000001", "3000000000000000", "-100000", "-1" );
 }
 
 // Build a BigInt from `value`, clone it requesting `requested` allocated

@@ -33,6 +33,11 @@ void BigInt_test_basic() {
     BigInt_test_assign_int();
 
     if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing to_int\n");
+    }
+    BigInt_test_to_int();
+
+    if(BIGINT_TEST_LOGGING > 0) {
         printf("Testing strings\n");
     }
     BigInt_test_strings();
@@ -492,6 +497,43 @@ void BigInt_test_negative_zero() {
         free(s);
         BigInt_free(x);
         BigInt_free(y);
+    }
+}
+
+// Verifies BigInt_to_int covers the full int range and
+// reports ERANGE for values that do not fit.
+void BigInt_test_to_int() {
+    struct { const char* s; int expected; } ok_cases[] = {
+        {"0", 0},
+        {"42", 42},
+        {"-42", -42},
+        {"2147483647", INT_MAX},
+        {"-2147483647", -2147483647},
+        {"-2147483648", INT_MIN},
+    };
+    for(unsigned int i = 0; i < sizeof(ok_cases) / sizeof(ok_cases[0]); i++) {
+        BigInt* b = BigInt_from_string(ok_cases[i].s);
+        assert(b);
+        int v;
+        assert(BigInt_to_int(b, &v));
+        assert(v == ok_cases[i].expected);
+        BigInt_free(b);
+    }
+
+    const char* range_cases[] = {
+        "2147483648",   // INT_MAX + 1
+        "-2147483649",  // INT_MIN - 1
+        "99999999999",  // far beyond int range
+        "-99999999999",
+    };
+    for(unsigned int i = 0; i < sizeof(range_cases) / sizeof(range_cases[0]); i++) {
+        BigInt* b = BigInt_from_string(range_cases[i]);
+        assert(b);
+        int v;
+        errno = 0;
+        assert(!BigInt_to_int(b, &v));
+        assert(errno == ERANGE);
+        BigInt_free(b);
     }
 }
 

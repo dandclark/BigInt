@@ -710,29 +710,32 @@ cleanup:
 }
 
 BOOL BigInt_to_int(const BigInt* big_int, int* value) {
-    *value = 0;
-    int tens_multiplier = 1;
+    // Accumulate the magnitude in an unsigned int.  A signed int cannot hold the
+    // magnitude of INT_MIN (which is INT_MAX + 1), so building the value signed
+    // and negating at the end would wrongly reject INT_MIN.
+    unsigned int magnitude = 0;
+    unsigned int tens_multiplier = 1;
 
     unsigned int num_digits = big_int->num_digits;
     const unsigned char* digits = big_int->digits;
     
-    // don't process any most significant digits that happen to be zero
-    // (avoids unnecessary tens_multiplier overflow)
+    // Don't process any most significant digits that happen to be zero
+    // (avoids unnecessary tens_multiplier overflow).
     while(num_digits && !digits[num_digits-1]) {
         num_digits--;
     }
 
-    // prefill value so that we can avoid an unnecessary tens_multiplier overflow
+    // Prefill magnitude so that we can avoid an unnecessary tens_multiplier overflow.
     if(num_digits) {
-        *value = *(digits++);
+        magnitude = *(digits++);
         num_digits--;
     }
     while(num_digits--) {
-        int digit = *(digits++);
+        unsigned int digit = *(digits++);
         if(
-            !check_mul_int_int(tens_multiplier, 10, &tens_multiplier)
-            || !check_mul_int_int(digit, tens_multiplier, &digit)
-            || !check_add_int_int(*value, digit, value)
+            !check_mul_uint_uint(tens_multiplier, 10, &tens_multiplier)
+            || !check_mul_uint_uint(digit, tens_multiplier, &digit)
+            || !check_add_uint_uint(magnitude, digit, &magnitude)
         ) {
             errno = ERANGE;
             return 0;
@@ -740,14 +743,27 @@ BOOL BigInt_to_int(const BigInt* big_int, int* value) {
     }
 
     if (big_int->is_negative) {
-        if(!check_mul_int_int(*value, -1, value)) {
+        // A negative value fits iff its magnitude is at most |INT_MIN|.
+        if(magnitude > (unsigned int)INT_MAX + 1u) {
             errno = ERANGE;
             return 0;
         }
+        if(magnitude == (unsigned int)INT_MAX + 1u) {
+            // Assign INT_MIN in this case directly because casting `INT_MAX` + 1
+            // to a signed int (which we have to do before we can negate it) doesn't fit.
+            *value = INT_MIN;
+        } else {
+            *value = -(int)magnitude;
+        }
+    } else {
+        if(magnitude > (unsigned int)INT_MAX) {
+            errno = ERANGE;
+            return 0;
+        }
+        *value = (int)magnitude;
     }
 
     return 1;
-
 }
 
 void BigInt_print(const BigInt* big_int) {

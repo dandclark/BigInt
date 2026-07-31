@@ -10,13 +10,13 @@
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-#if UNIT_MAX >> 32 == 0
+#if UINT_MAX >> 32 == 0
 #    define check_add_int_int check_add_int32_int32
 #    define check_add_uint_uint check_add_uint32_uint32
 #    define check_mul_int_int check_mul_int32_int32
 #    define check_mul_uint_uint check_mul_uint32_uint32
 #else
-#    if UNIT_MAX >> 64 == 0
+#    if UINT_MAX >> 64 == 0
 #        define check_add_int_int check_add_int64_int64
 #        define check_add_uint_uint check_add_uint64_uint64
 #        define check_mul_int_int check_mul_int64_int64

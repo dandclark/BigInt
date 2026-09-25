@@ -82,6 +82,11 @@ void BigInt_test_basic() {
     }
     BigInt_test_add_digits_overflow();
 
+    if(BIGINT_TEST_LOGGING > 0) {
+        printf("Testing multiplication digit-count overflow\n");
+    }
+    BigInt_test_multiply_digits_overflow();
+
     // Test addition, subtraction, and comparison for all positive and
     // negative permutations of these integers
     if(BIGINT_TEST_LOGGING > 0) {
@@ -199,6 +204,33 @@ void BigInt_test_add_digits_overflow() {
 
     errno = 0;
     assert(!BigInt_add_digits(&target, &addend));
+    assert(errno == ERANGE);
+    assert(target.digits == &target_digit);
+    assert(target.num_digits == UINT_MAX);
+    assert(target.num_allocated_digits == UINT_MAX);
+    assert(target_digit == 1);
+}
+
+void BigInt_test_multiply_digits_overflow() {
+    // The one-byte buffers are intentional. Digit-count overflow must be
+    // rejected before BigInt_multiply accesses the actual digit buffers.
+    unsigned char target_digit = 1;
+    unsigned char multiplier_digit = 1;
+    BigInt target = {
+        .digits = &target_digit,
+        .num_digits = UINT_MAX,
+        .num_allocated_digits = UINT_MAX,
+        .is_negative = 0
+    };
+    const BigInt multiplier = {
+        .digits = &multiplier_digit,
+        .num_digits = 1,
+        .num_allocated_digits = 1,
+        .is_negative = 0
+    };
+
+    errno = 0;
+    assert(!BigInt_multiply(&target, &multiplier));
     assert(errno == ERANGE);
     assert(target.digits == &target_digit);
     assert(target.num_digits == UINT_MAX);

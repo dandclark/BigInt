@@ -488,6 +488,16 @@ BOOL BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract) {
 // Multiply using the pencil and paper method.  Complexity is O(n*m) where n, m are
 // the number of digits in big_int and multiplier, respectively.
 BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
+    unsigned int digits_needed;
+    if(
+        !check_add_uint_uint(
+            big_int->num_digits, multiplier->num_digits, &digits_needed
+        )
+        || !check_add_uint_uint(digits_needed, 1, &digits_needed)
+    ) {
+        errno = ERANGE;
+        return 0;
+    }
 
     // Need to keep track of the result in a separate variable because we need
     // big_int to retain its original value throughout the course of the calculation.
@@ -504,7 +514,6 @@ BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
         return 0;
     }
 
-    unsigned int digits_needed = big_int->num_digits + multiplier->num_digits + 1;
     if(!BigInt_ensure_digits(addend, digits_needed)) {
         BigInt_free(result);
         BigInt_free(addend);
@@ -520,12 +529,12 @@ BOOL BigInt_multiply(BigInt* big_int, const BigInt* multiplier) {
             addend->digits[i - 1] = 0;
         }
 
-        for(j = 0; j < big_int->num_digits || carry > 0; ++j) { // TODO FIXME: potential infinite loop
+        for(j = 0; j < big_int->num_digits || carry > 0; ++j) {
             if(j + i == addend->num_digits) {
                 ++addend->num_digits;
             }
 
-            assert(digits_needed >= j + 1);
+            assert(digits_needed >= i + j + 1);
 
             int total;
             if(j < big_int->num_digits) {

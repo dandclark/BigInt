@@ -22,6 +22,7 @@ void BigInt_test_big_multiplication();
 void BigInt_test_construct(int value);
 void BigInt_test_assign_int();
 void BigInt_test_add_digits_overflow();
+void BigInt_test_multiply_digits_overflow();
 void BigInt_test_to_int();
 void BigInt_test_signs();
 void BigInt_test_multiply_optimized();

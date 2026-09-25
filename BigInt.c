@@ -364,14 +364,20 @@ BOOL BigInt_add_int(BigInt* big_int, const int addend) {
 }
 
 BOOL BigInt_add_digits(BigInt* big_int, const BigInt* addend) {
-    unsigned int digits_needed = MAX(big_int->num_digits, addend->num_digits) + 1; // TODO FIXME: this can overflow...
+    unsigned int digits_needed;
+    if(!check_add_uint_uint(
+        MAX(big_int->num_digits, addend->num_digits), 1, &digits_needed
+    )) {
+        errno = ERANGE;
+        return 0;
+    }
     if(!BigInt_ensure_digits(big_int, digits_needed)) {
         return 0;
     }
 
     unsigned int i;
     int carry = 0;
-    for(i = 0; i < addend->num_digits || carry > 0; ++i) { // TODO FIXME: refactor to protect from integer overflow
+    for(i = 0; i < addend->num_digits || carry > 0; ++i) {
         // Append another digit if necessary
         if(i == big_int->num_digits) {
             ++big_int->num_digits;
@@ -846,4 +852,3 @@ BOOL BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
     }
     return 1;
 }
-

@@ -26,63 +26,6 @@
 #    endif
 #endif
 
-#ifndef BIGINT_REDZONE
-#define BIGINT_REDZONE 0
-#endif//BIGINT_REDZONE
-
-#if BIGINT_REDZONE
-// if BIGINT_REDZONE is set to a value, that value is the number of bytes
-// of extra allocation at the front and the back of the digits buffer.
-// those "redzones" will then be filled with an uncommon value (0x42)
-// when freed, those "redzones" will be checked to make sure they weren't modified
-unsigned char* malloc_digits(unsigned int num_digits) {
-    unsigned int bytes;
-    if(
-        !check_mul_uint_uint(num_digits, sizeof(unsigned char), &bytes)
-        || !check_add_uint_uint(bytes, BIGINT_REDZONE * 2, &bytes)
-    ) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    unsigned char* p = malloc(bytes);
-    if(!p) {
-        errno = ENOMEM;
-        return NULL;
-    }
-    memset(p, 0x42, bytes);
-    return p + BIGINT_REDZONE;
-}
-
-unsigned char* okay_digits(unsigned char* digits, unsigned int num_digits) {
-    unsigned char* rz1 = digits - BIGINT_REDZONE;
-    unsigned char* rz2 = digits + num_digits * sizeof(unsigned char);
-    for(unsigned int i = 0; i < BIGINT_REDZONE; i++) {
-        if(rz1[i] != 0x42) {
-            fprintf(stderr, "redzone underflow\n");
-            return NULL;
-        }
-        if(rz2[i] != 0x42) {
-            fprintf(stderr, "redzone overflow\n");
-            return NULL;
-        }
-    }
-    return rz1;
-}
-
-void free_digits(unsigned char* digits, unsigned int num_digits) {
-    if(!digits) {
-        return;
-    }
-    unsigned char* p = okay_digits(digits, num_digits);
-    assert(p); // redzone violation
-    free(p);
-}
-#else
-#define malloc_digits(num_digits) malloc((num_digits) * sizeof(unsigned char))
-#define okay_digits(digits,num_digits) 1
-#define free_digits(digits,num_digits) ((void)num_digits, free(digits))
-#endif
-
 // Number of decimal digits needed to represent `value`, at least 1 (so zero has
 // one digit).  Uses integer arithmetic to avoid the undefined behavior and
 // rounding error of floor(log10()) -- in particular log10(0) == -inf, whose
@@ -114,7 +57,9 @@ BigInt* BigInt_construct(int value) {
     new_big_int->num_digits = num_decimal_digits(value2);
 
     new_big_int->num_allocated_digits = new_big_int->num_digits;
-    new_big_int->digits = malloc_digits(new_big_int->num_allocated_digits);
+    new_big_int->digits = malloc(
+        new_big_int->num_allocated_digits * sizeof(unsigned char)
+    );
     if(!new_big_int->digits) {
         free(new_big_int);
         return NULL;
@@ -138,7 +83,7 @@ BigInt* BigInt_clone(const BigInt* big_int, unsigned int num_allocated_digits) {
     if(!new_big_int) {
         return NULL;
     }
-    new_big_int->digits = malloc_digits(num_allocated_digits);
+    new_big_int->digits = malloc(num_allocated_digits * sizeof(unsigned char));
     if(!new_big_int->digits) {
         free(new_big_int);
         return NULL;
@@ -147,7 +92,6 @@ BigInt* BigInt_clone(const BigInt* big_int, unsigned int num_allocated_digits) {
     new_big_int->is_negative = big_int->is_negative;
     new_big_int->num_digits = big_int->num_digits;
     memmove(new_big_int->digits, big_int->digits, big_int->num_digits * sizeof(unsigned char));
-    assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
     return new_big_int;
 }
 
@@ -171,20 +115,19 @@ BigInt* BigInt_from_string(const char* str) {
     if(num_digits == 0) {
         new_big_int->is_negative = 0;
         new_big_int->num_allocated_digits = 1;
-        new_big_int->digits = malloc_digits(1);
+        new_big_int->digits = malloc(sizeof(unsigned char));
         if(!new_big_int->digits){
             free(new_big_int);
             return NULL;
         }
         new_big_int->digits[0] = 0;
         new_big_int->num_digits = 1;
-        assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
         return new_big_int;
     }
 
     new_big_int->is_negative = is_negative;
     new_big_int->num_allocated_digits = num_digits;
-    new_big_int->digits = malloc_digits(num_digits);
+    new_big_int->digits = malloc(num_digits * sizeof(unsigned char));
     if(!new_big_int->digits){
         free(new_big_int);
         return NULL;
@@ -201,13 +144,12 @@ BigInt* BigInt_from_string(const char* str) {
         *digits++ = digit - '0';
     }
     new_big_int->num_digits = digits - new_big_int->digits;
-    assert(okay_digits(new_big_int->digits, new_big_int->num_allocated_digits));
     return new_big_int;
 }
 
 void BigInt_free(BigInt* big_int) {
     if(big_int) {
-        free_digits(big_int->digits, big_int->num_allocated_digits);
+        free(big_int->digits);
         free(big_int);
     }
 }
@@ -844,20 +786,18 @@ char* BigInt_to_new_string(const BigInt* big_int){
 
 BOOL BigInt_ensure_digits(BigInt* big_int, unsigned int digits_needed) {
     if(big_int->num_allocated_digits < digits_needed) {
-        assert(okay_digits(big_int->digits, big_int->num_allocated_digits));
-        unsigned char* new_digits = malloc_digits(digits_needed);
+        unsigned char* new_digits = malloc(
+            digits_needed * sizeof(unsigned char)
+        );
         if(!new_digits) {
             return 0;
         }
-        assert(okay_digits(new_digits, digits_needed));
-        unsigned int old_allocated = big_int->num_allocated_digits;
         unsigned char* old_digits = big_int->digits;
         memcpy(new_digits, old_digits, big_int->num_digits * sizeof(unsigned char));
         big_int->digits = new_digits;
         big_int->num_allocated_digits = digits_needed;
 
-        free_digits(old_digits, old_allocated);
-        assert(okay_digits(big_int->digits, big_int->num_allocated_digits));
+        free(old_digits);
     }
     return 1;
 }

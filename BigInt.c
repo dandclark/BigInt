@@ -132,10 +132,10 @@ BigInt* BigInt_from_string(const char* str) {
         free(new_big_int);
         return NULL;
     }
-    const char* end = str + num_digits - 1;
+    const char* end = str + num_digits;
     unsigned char* digits = new_big_int->digits;
-    while( end >= str ){
-        unsigned char digit = *(end--);
+    while(end != str) {
+        unsigned char digit = *--end;
         if(digit < '0' || digit > '9'){
             BigInt_free(new_big_int);
             errno = EINVAL;
@@ -256,11 +256,11 @@ int BigInt_compare_digits(const BigInt* a, const BigInt* b) {
     // Both have the same number of digits, so we actually have to loop through until we
     // find one that doesn't match.
     unsigned int count = a->num_digits;
-    const unsigned char* pa = &a->digits[count-1];
-    const unsigned char* pb = &b->digits[count-1];
+    const unsigned char* pa = a->digits + count;
+    const unsigned char* pb = b->digits + count;
     while(count--) {
-        char da = *(pa--);
-        char db = *(pb--);
+        char da = *--pa;
+        char db = *--pb;
         if(da > db) {
             return 1;
         } else if(da < db) {
@@ -606,9 +606,10 @@ BOOL BigInt_divide(
     divs[9] = div9;
 
     const unsigned char* base = dividend->digits;
-    const unsigned char* digits = &base[dividend->num_digits-1];
+    const unsigned char* digits = base + dividend->num_digits;
 
-    while(digits >= base) {
+    while(digits != base) {
+        --digits;
         if(!BigInt_multiply(_remainder, ten)) {
             goto cleanup;
         }
@@ -628,7 +629,6 @@ BOOL BigInt_divide(
         if(!BigInt_multiply(_quotient, ten) || !BigInt_add_int(_quotient, new_digit)) {
             goto cleanup;
         }
-        digits--;
     }
 
     // Apply the signs to the magnitude results,
@@ -729,10 +729,10 @@ void BigInt_print(const BigInt* big_int) {
 
 void BigInt_fprint(FILE *dest, const BigInt* big_int) {
     const unsigned char* base = big_int->digits;
-    const unsigned char* digits = &base[big_int->num_digits-1];
+    const unsigned char* digits = base + big_int->num_digits;
     if (big_int->is_negative) fputc('-', dest);
-    while(digits >= base) {
-        fputc('0' + *(digits--), dest);
+    while(digits != base) {
+        fputc('0' + *--digits, dest);
     }
 }
 
@@ -746,7 +746,7 @@ unsigned int BigInt_strlen(const BigInt* big_int){
 
 BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size){
     const unsigned char* base = big_int->digits;
-    const unsigned char* digits = &base[big_int->num_digits-1];
+    const unsigned char* digits = base + big_int->num_digits;
     if (big_int->is_negative){
         if(!buf_size--){
             errno = ERANGE;
@@ -755,12 +755,12 @@ BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size){
         *buf++ = '-';
     }
 
-    while( digits >= base ){
+    while(digits != base) {
         if(!buf_size--){
             errno = ERANGE;
             return 0;
         }
-        *buf++ = '0' + *(digits--);
+        *buf++ = '0' + *--digits;
     }
 
     // write 0 terminator:

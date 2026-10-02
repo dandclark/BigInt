@@ -103,7 +103,12 @@ BigInt* BigInt_from_string(const char* str) {
     while(*str == '0' && *str != 0) { // remove leading zeros
         str++;
     }
-    unsigned int num_digits = strlen( str );
+    size_t length = strlen(str);
+    if(length > UINT_MAX) {
+        errno = ERANGE;
+        return NULL;
+    }
+    unsigned int num_digits = (unsigned int)length;
     BigInt* new_big_int = malloc(sizeof(BigInt));
     if(!new_big_int){
         return NULL;
@@ -143,7 +148,7 @@ BigInt* BigInt_from_string(const char* str) {
         }
         *digits++ = digit - '0';
     }
-    new_big_int->num_digits = digits - new_big_int->digits;
+    new_big_int->num_digits = num_digits;
     return new_big_int;
 }
 

@@ -338,6 +338,34 @@ void BigInt_test_strings() {
     assert(str && !strcmp(str, "0"));
     free(str);
     BigInt_free(big_int);
+
+    // Reject a buffer that cannot hold both the digits and the terminator
+    // before writing any output.
+    big_int = BigInt_from_string("-123");
+    assert(big_int);
+    char small_buf[] = "keep";
+    errno = 0;
+    assert(!BigInt_to_string(big_int, small_buf, sizeof(small_buf) - 1));
+    assert(errno == ERANGE);
+    assert(!strcmp(small_buf, "keep"));
+    BigInt_free(big_int);
+
+#if SIZE_MAX == UINT_MAX
+    // On targets where size_t cannot represent UINT_MAX + 1, adding the sign
+    // to a UINT_MAX-digit value must fail instead of wrapping to zero.
+    unsigned char digit = 1;
+    BigInt maximum_length = {
+        .digits = &digit,
+        .num_digits = UINT_MAX,
+        .num_allocated_digits = UINT_MAX,
+        .is_negative = 1
+    };
+    errno = 0;
+    assert(BigInt_strlen(&maximum_length) == SIZE_MAX);
+    assert(errno == ERANGE);
+    assert(!BigInt_to_new_string(&maximum_length));
+    assert(errno == ERANGE);
+#endif
 }
 
 void _BigInt_test_division( const char* dividend, const char* divisor, const char* quotient, const char* remainder ) {

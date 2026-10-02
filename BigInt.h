@@ -1,6 +1,7 @@
 #ifndef BIG_INT_H
 #define BIG_INT_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifndef NULL
@@ -59,12 +60,13 @@ void BigInt_fprint(FILE *dest, const BigInt* big_int);
 
 // what would be the length of a string if this BigInt were converted to a string
 // (see BigInt_to_string() below)
-unsigned int BigInt_strlen(const BigInt* big_int);
+// Returns SIZE_MAX and sets errno to ERANGE if the length is not representable.
+size_t BigInt_strlen(const BigInt* big_int);
 
 // write BigInt to a string buffer, returns non-zero on success
 // returns zero if BigInt doesn't fit into buf.
 // buf_size *must* include the terminating zero byte
-BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size);
+BOOL BigInt_to_string(const BigInt* big_int, char* buf, size_t buf_size);
 
 // convert BigInt to a newly allocated string.
 // returns NULL on failure.
@@ -137,4 +139,3 @@ BOOL BigInt_add_digits(BigInt* big_int, const BigInt* to_add);
 BOOL BigInt_subtract_digits(BigInt* big_int, const BigInt* to_subtract);
 
 #endif // BIG_INT_H
-

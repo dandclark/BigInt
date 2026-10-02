@@ -736,51 +736,57 @@ void BigInt_fprint(FILE *dest, const BigInt* big_int) {
     }
 }
 
-unsigned int BigInt_strlen(const BigInt* big_int){
-    unsigned int len = big_int->num_digits;
-    if( big_int->is_negative ){
-        len++;
+size_t BigInt_strlen(const BigInt* big_int) {
+    size_t len = big_int->num_digits;
+    if(big_int->is_negative) {
+        if(len == SIZE_MAX) {
+            errno = ERANGE;
+            return SIZE_MAX;
+        }
+        ++len;
     }
     return len;
 }
 
-BOOL BigInt_to_string(const BigInt* big_int, char* buf, unsigned int buf_size){
+BOOL BigInt_to_string(const BigInt* big_int, char* buf, size_t buf_size) {
+    size_t string_length = BigInt_strlen(big_int);
+    if(string_length == SIZE_MAX || buf_size <= string_length) {
+        errno = ERANGE;
+        return 0;
+    }
+
     const unsigned char* base = big_int->digits;
     const unsigned char* digits = base + big_int->num_digits;
     if (big_int->is_negative){
-        if(!buf_size--){
-            errno = ERANGE;
-            return 0;
-        }
         *buf++ = '-';
     }
 
     while(digits != base) {
-        if(!buf_size--){
-            errno = ERANGE;
-            return 0;
-        }
         *buf++ = '0' + *--digits;
     }
 
-    // write 0 terminator:
-    if(!buf_size--){
-        errno = ERANGE;
-        return 0;
-    }
-    *buf++ = 0;
+    // Write 0 terminator
+    *buf = 0;
 
     return 1;
 }
 
-char* BigInt_to_new_string(const BigInt* big_int){
-    unsigned int buf_size = BigInt_strlen(big_int) + 1;
+char* BigInt_to_new_string(const BigInt* big_int) {
+    size_t string_length = BigInt_strlen(big_int);
+    if(string_length == SIZE_MAX) {
+        errno = ERANGE;
+        return NULL;
+    }
+
+    size_t buf_size = string_length + 1;
     char* buf = malloc(buf_size);
     if(!buf) {
         return NULL;
     }
-    BOOL result = BigInt_to_string(big_int, buf, buf_size);
-    assert(result);
+    if(!BigInt_to_string(big_int, buf, buf_size)) {
+        free(buf);
+        return NULL;
+    }
     return buf;
 }
 
